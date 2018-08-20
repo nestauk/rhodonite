@@ -1,5 +1,31 @@
 import itertools
+import numpy as np
 
+
+def edge_property_as_matrix(g, prop_name):
+    """edge_property_as_matrix
+    Returns an edge property as a matrix. If the graph is undirected, a
+    symmetric graph is returned.
+    
+    Args:
+        g (:obj:`Graph`): A graph-tool type graph.
+        prop_name (str): The name of an edge property belonging to Graph, g.
+
+    Returns:
+     mat (:obj:`np.array`): The edge property in matrix form, with each
+     position (i, j) representing the property value between vertices i and j.
+    """
+
+    mat = np.zeros(g.n_vertices, g.n_vertices)
+    prop_vals = g.edge_properties[prop_name].get_array()
+    if g.is_directed():
+        for edge, val in zip(self.edges(), prop_vals):
+            mat[edge[0]][edge[1]] = val
+    else:
+        for edge, val in zip(self.edges(), prop_vals):
+            mat[edge[0]][edge[1]] = val
+            mat[edge[1]][edge[0]] = val
+    return mat
 
 def flatten(list_of_iters):
     """flatten
@@ -64,6 +90,37 @@ def window(seq, n=3):
     for elem in it:
         result = result[1:] + (elem,)
         yield result
+
+#     def get_occurrence(self, label):
+#         """get_occurrences
+#         Returns the number of occurrences for a label from the occurrences
+#         vector.
+# 
+#         Args:
+#             label: A label from the original set of sequences.
+# 
+#         Returns:
+#             The number of times the label occurred within the sequences.
+#         """
+# 
+#         return self.occurences[self.label2vertex[label]]
+
+
+#     def get_coocurrence(self, label_0, label_1):
+#         """get_edge_coocurrence
+#         Get the number of coocurrences between two labels.
+# 
+#         Args:
+#             label_0: A label from the sequence.
+#             label_1: A label from the sequences
+# 
+#         Returns:
+#             co: The number of times the two labels coocur.
+#         """
+#         i_0 = self.label2vertex[label_0]
+#         i_1 = self.label2_vertex[label_1]
+#         co = self.coocurrences[i_0][i_1]
+#         return co
 
 # def edge_coocurrence_counts(coocurrences):
 #     """coocurrence_counts

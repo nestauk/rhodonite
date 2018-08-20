@@ -1,5 +1,7 @@
 from rhodonite.base import CoocurrenceGraph
 from rhodonite.utilities import window, flatten
+from rhodonite.spectral import coocurrences, occurrences
+
 
 class SlidingWindowGraph(CoocurrenceGraph):
 
@@ -52,6 +54,17 @@ class SlidingWindowGraph(CoocurrenceGraph):
 	return s_w_c
     
     def build(self, sequences, dictionary=None, window_size=3):
+        """build
+        Builds the graph from a set of sequences and an optional dictionary.
+        Overwrites parent class.
+
+        Args:
+            sequences (:obj:`iter` of :obj:`iter`):
+            dictionary (dict): Dictionary mapping labels to IDs. Default is
+                None.
+            window_size (int):
+
+        """
         self.sequences = sequences
         self.dictionary = dictionary
         self.window_size = window_size
@@ -71,25 +84,21 @@ class SlidingWindowGraph(CoocurrenceGraph):
         for label, id in self.dictionary.items():
             self.label2vertex[label] = id2vertex[id]
 
+        self.add_vertex(n_vertices)
         sequences_ids = [self.sequence2verticses(s) for s in self.sequences]
-        self.ocurrences = self.calculate_occurrences()
+        o = occurrences(self)
+        self.vertex_properties['occurrences'] = o
+
         self.sequence_coocurrences = self.sliding_window_coocurrences(
                 sequences_ids,
                 self.window_size
                 )
         sequence_coocurrences_flat = flatten(self.sequence_coocurrences)
-        self.coocurrences = self.calculate_coocurrences(
-                Counter(sequence_coocurrences_flat),
-                self.n_vertices
-                )
-        self.n_coocurrences = len(sequence_coocurrences_flat)
-        
         edges = list(set(flatten(self.sequence_coocurrences))
-        # edge_n_coocurrences = self.edge_coocurrence_counts(coocurrences)
-        # vertex_n_edges = self.vertex_degree_centralitiy(edge_coocurrences)
         self.n_edges = len(edges)
-
-        # finally build the graph
-        self.add_vertex(n_vertices)
         self.add_edge_list(edges)
+
+        self.n_coocurrences = len(sequence_coocurrences_flat)
+        co = coocurrences(self)
+        self.edge_properties['coocurrences'] = co
 
