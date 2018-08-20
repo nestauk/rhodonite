@@ -47,7 +47,7 @@ Overview
 
 .. end-badges
 
-A Pythin library for coocurrence networks.
+A Python library for the creation and study of coocurrence networks.
 
 * Free software: MIT license
 
@@ -58,31 +58,33 @@ Installation
 
     pip install rhodonite
 
-Documentation
-=============
+This package requires `graph-tool`.
 
-https://rhodonite.readthedocs.io/
-
-Development
-===========
-
-To run the all tests run::
-
-    tox
-
-Note, to combine the coverage data from all the tox environments run:
-
-.. list-table::
-    :widths: 10 90
-    :stub-columns: 1
-
-    - - Windows
-      - ::
-
-            set PYTEST_ADDOPTS=--cov-append
-            tox
-
-    - - Other
-      - ::
-
-            PYTEST_ADDOPTS=--cov-append tox
+.. Documentation
+.. =============
+.. 
+.. https://rhodonite.readthedocs.io/
+.. 
+.. Development
+.. ===========
+.. 
+.. To run the all tests run::
+.. 
+..     tox
+.. 
+.. Note, to combine the coverage data from all the tox environments run:
+.. 
+.. .. list-table::
+..     :widths: 10 90
+..     :stub-columns: 1
+.. 
+..     - - Windows
+..       - ::
+.. 
+..             set PYTEST_ADDOPTS=--cov-append
+..             tox
+.. 
+..     - - Other
+..       - ::
+.. 
+..             PYTEST_ADDOPTS=--cov-append tox
