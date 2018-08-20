@@ -40,8 +40,8 @@ def flatten(list_of_iters):
     flat = [item for iter in list_of_iters for item in iter]
     return flat
 
-def seq2coocurrences(seq):
-    """seq2coocurrences
+def seq2coocurrence(seq):
+    """seq2coocurrence
     Converts an iterable sequence to a list of the set of tuples that 
     represent all the possible coocurrences.
 
@@ -56,8 +56,8 @@ def seq2coocurrences(seq):
     Examples:
         >>> doc = ['me', 'myself', 'irene']
 
-        >>> seq2coocurrence(doc)
-        [('me', 'myself'), ('irene', 'myself'), ('irene', 'me')]
+        >>> sorted(seq2coocurrence(doc))
+        [('irene', 'me'), ('irene', 'myself'), ('me', 'myself')]
     """
     combos = list(itertools.combinations(set(seq), r=2))
     coocurrences = list(set([tuple(sorted(c)) for c in combos]))
@@ -72,16 +72,10 @@ def window(seq, n=3):
         seq (:obj:`iter`): Sequence to move the window across.
 
     Examples:
-        >>> doc = ['rockets', 'and', 'moonshots', 'blame', 'it', 'on',
-                'the', 'have', 'nots']
+        >>> doc = ['a', 'b', 'c', 'd', 'e', 'f']
 
         >>> list(window(doc))
-        [('rockets', 'and', 'moonshots'),
-         ('and', 'moonshots', 'blame'),
-         ('moonshots', 'blame', 'it'),
-         ('it, 'on', 'the'),
-         ('the', 'have', 'nots),
-         ]
+        [('a', 'b', 'c'), ('b', 'c', 'd'), ('c', 'd', 'e'), ('d', 'e', 'f')]
     """
     it = iter(seq)
     result = tuple(itertools.islice(it, n))
