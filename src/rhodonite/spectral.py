@@ -40,7 +40,7 @@ def occurrences(g):
     
     occurrence_counts = Counter(flatten(g.sequences_ids))
     occurrences = g.new_vertex_property('int')
-    for i, count in occurrence_counts.items()
+    for i, count in occurrence_counts.items():
         occurrences[i] = count
     return occurrences
 

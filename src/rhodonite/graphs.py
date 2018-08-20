@@ -28,30 +28,30 @@ class SlidingWindowGraph(CoocurrenceGraph):
         self.n_edges = 0
         self.n_coocurrences = 0
 
-    def sliding_window_coocurrences(seqs, n=n):
-            """sliding_window_coocurrences
-            Converts a sequments in a corpus into lists of coocurrence tuples 
-            using a sliding window method. The window moves across each 
-            sequment, and on each iteration, links the term at the centre of 
-            each window with the terms on either side.
-    
-            Args:
-                seqs (:obj:`iter` of :obj:`iter` of :obj:`str`): A corpus of
-                    sequments.
-                n (int): Size of the window.
-    
-            Returns:
-                coocurrences:
-            """
-	s_w_c = []
-	for seq in seqs:
-	    seq_indices = range(len(seq))
-	    seq_indices = window(seq_indices, n=n)
-	    seq_indices = flatten([seq2coocurrences(t) for t in seq_indices])
-	    seq = [sorted((seq[a], seq[b])) for a, b in list(set(seq_indices))]
-	    seq = [tuple((a, b)) for a, b in seq if a !=b]
-	    s_w_c.append(seq)
-	return s_w_c
+    def sliding_window_coocurrences(self, seqs, n):
+        """sliding_window_coocurrences
+        Converts a sequments in a corpus into lists of coocurrence tuples 
+        using a sliding window method. The window moves across each 
+        sequment, and on each iteration, links the term at the centre of 
+        each window with the terms on either side.
+
+        Args:
+            seqs (:obj:`iter` of :obj:`iter` of :obj:`str`): A corpus of
+                sequments.
+            n (int): Size of the window.
+
+        Returns:
+            coocurrences:
+        """
+        s_w_c = []
+        for seq in seqs:
+            seq_indices = range(len(seq))
+            seq_indices = window(seq_indices, n=n)
+            seq_indices = flatten([seq2coocurrences(t) for t in seq_indices])
+            seq = [sorted((seq[a], seq[b])) for a, b in list(set(seq_indices))]
+            seq = [tuple((a, b)) for a, b in seq if a !=b]
+            s_w_c.append(seq)
+        return s_w_c
     
     def build(self, sequences, dictionary=None, window_size=3):
         """build
@@ -94,7 +94,7 @@ class SlidingWindowGraph(CoocurrenceGraph):
                 self.window_size
                 )
         sequence_coocurrences_flat = flatten(self.sequence_coocurrences)
-        edges = list(set(flatten(self.sequence_coocurrences))
+        edges = list(set(flatten(self.sequence_coocurrences)))
         self.n_edges = len(edges)
         self.add_edge_list(edges)
 
