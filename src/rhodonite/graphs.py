@@ -1,18 +1,15 @@
 from rhodonite.base import CoocurrenceGraph
-from rhodonite.utilities import window, flatten
+from rhodonite.utilities import window, flatten, seq2coocurrence
 from rhodonite.spectral import coocurrences, occurrences
 
 
 class SlidingWindowGraph(CoocurrenceGraph):
 
-    def __init__(self, directed=False, **kwargs):
+    def __init__(self, window_size=3, **kwargs):
         """SlidingWindowGraph
         A coocurrence graph built using a sliding window method.
         
         Args:
-            sequences (:obj:`iter` of :obj:`iter`):
-            dictionary (dict):
-            window_size (int):
             **kwargs:
 
         Parameters:
@@ -23,7 +20,7 @@ class SlidingWindowGraph(CoocurrenceGraph):
             n_coocurrences (int): Total number of coocurrences in the graph.
                 Calculated when the graph is built.
         """
-        super().__init__(directed=directed, **kwargs)
+        super().__init__(directed=False, **kwargs)
         self.window_size = window_size
         self.n_edges = 0
         self.n_coocurrences = 0
@@ -47,13 +44,13 @@ class SlidingWindowGraph(CoocurrenceGraph):
         for seq in seqs:
             seq_indices = range(len(seq))
             seq_indices = window(seq_indices, n=n)
-            seq_indices = flatten([seq2coocurrences(t) for t in seq_indices])
+            seq_indices = flatten([seq2coocurrence(t) for t in seq_indices])
             seq = [sorted((seq[a], seq[b])) for a, b in list(set(seq_indices))]
             seq = [tuple((a, b)) for a, b in seq if a !=b]
             s_w_c.append(seq)
         return s_w_c
     
-    def build(self, sequences, dictionary=None, window_size=3):
+    def build(self, sequences, dictionary=None):
         """build
         Builds the graph from a set of sequences and an optional dictionary.
         Overwrites parent class.
@@ -67,7 +64,6 @@ class SlidingWindowGraph(CoocurrenceGraph):
         """
         self.sequences = sequences
         self.dictionary = dictionary
-        self.window_size = window_size
 
         # convert the sequence elements to integer ids and get coocurrences
         labels = sorted(list(set(flatten(self.sequences))))

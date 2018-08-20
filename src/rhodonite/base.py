@@ -3,10 +3,8 @@ from graph_tool.all import Graph
 
 class CoocurrenceGraph(Graph):
 
-    def __init__(self, sequences, dictionary=None, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.sequences = sequences
-        self.dictionary = dictionary
     
     def sequence2vertices(self, sequence):
         """sequence2vertices
