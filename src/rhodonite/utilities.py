@@ -30,6 +30,66 @@ def edge_property_as_matrix(g, prop_name):
             mat[t][s] = val
     return mat
 
+def get_edge_vertex_ids(g, sorted=True):
+    """get_edge_vertex_ids
+    Returns a list of tuples containing the source and target for each edge in
+    the graph.
+
+    Args:
+        g (:obj:`Graph`): A graph with edges.
+        sorted (bool): Determines whether the edges will be returned sorted in
+            ascending order or not. Defaults to True.
+
+    Returns:
+        A list of source target pairs for every edge in the graph, with the
+        format, (source, target).
+    """
+    if sorted:
+        return sorted([(int(e.source()), int(e.target())) for e in g.edges()])
+    else:
+        return [(int(e.source()), int(e.target())) for e in g.edges()]
+
+def save_edgelist(g, filepath, weight=None):
+    """save_edgelist
+    Saves the edges of a graph to a file in single a space separated format to
+    a delineated file.
+
+    Some example rows from a file with no weights:
+
+    0 1
+    0 2
+    1 2
+
+    Some example rows from a file with weights:
+
+    0 1 0.125
+    0 2 0.5
+    1 2 0.25
+    
+    Args:
+        g (:obj:`Graph`): 
+        filepath (str): 
+        weight (str) or (:obj:`PropertyMap`): 
+    """
+    
+    edgelist = get_edge_vertex_ids(g)
+
+    if weight:
+        if type(weight) == str:
+            edge_prop = g.edge_properties[weight].get_array()
+        else:
+            edge_prop = weight.get_array()
+        with open(filepath, 'w') as f:
+            for (s, t), w in zip(edgelist, weight):
+                f.write('{} {} {}'.format(s, t, w))
+    else:
+        with open(filepath, 'w') as f:
+            for s, t in edgelist:
+                f.write('{} {}'.format(s, t))
+
+def read_cliques():
+    pass
+
 def flatten(list_of_iters):
     """flatten
     Flattens a list of iterables into a single flat list.
@@ -87,6 +147,7 @@ def window(seq, n=3):
     for elem in it:
         result = result[1:] + (elem,)
         yield result
+
 
 #     def get_occurrence(self, label):
 #         """get_occurrences
