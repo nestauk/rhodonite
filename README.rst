@@ -12,9 +12,9 @@ Rhodonite
     * - tests
       - | |travis|
         |
-..    * - package
-..      - | |version| |wheel| |supported-versions| |supported-implementations|
-..        | |commits-since|
+..     * - package
+..       - | |version| |wheel| |supported-versions| |supported-implementations|
+..         | |commits-since|
 
 .. |docs| image:: https://readthedocs.org/projects/rhodonite/badge/?style=flat
     :target: https://readthedocs.org/projects/rhodonite
@@ -47,7 +47,10 @@ Rhodonite
 
 .. end-badges
 
+.. image:: ./img/rhodonite_500_77.png
+
 A Python package for the creation and study of coocurrence networks.
+
 
 Installation
 ============
@@ -56,11 +59,11 @@ Installation
 
     pip install rhodonite
 
-This package is built on ``graph-tool``. For installation instructions see the
-website.
+This package is built on ``graph-tool``. For installation instructions, see
+the website.
 
-Some functionality in this package also requires the use of the CFinder tool,
-which can be downloaded from their website.
+Some functionality in this package also requires the CFinder tool, which can
+be downloaded from their website.
 
 .. Documentation
 .. =============
