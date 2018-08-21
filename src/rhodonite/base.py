@@ -1,7 +1,7 @@
 from graph_tool.all import Graph
 
 
-class CoocurrenceGraph(Graph):
+class CooccurrenceGraph(Graph):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

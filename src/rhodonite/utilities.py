@@ -16,15 +16,18 @@ def edge_property_as_matrix(g, prop_name):
      position (i, j) representing the property value between vertices i and j.
     """
 
-    mat = np.zeros(g.n_vertices, g.n_vertices)
+    mat = np.zeros((g.n_vertices, g.n_vertices))
     prop_vals = g.edge_properties[prop_name].get_array()
+    edges = sorted(g.edges())
+    sources = [int(e.source()) for e in edges]
+    targets = [int(e.target()) for e in edges]
     if g.is_directed():
-        for edge, val in zip(self.edges(), prop_vals):
-            mat[edge[0]][edge[1]] = val
+        for s, t, val in zip(sources, targets, prop_vals):
+            mat[s][t] = val
     else:
-        for edge, val in zip(self.edges(), prop_vals):
-            mat[edge[0]][edge[1]] = val
-            mat[edge[1]][edge[0]] = val
+        for s, t, val in zip(sources, targets, prop_vals):
+            mat[s][t] = val
+            mat[t][s] = val
     return mat
 
 def flatten(list_of_iters):
@@ -40,28 +43,28 @@ def flatten(list_of_iters):
     flat = [item for iter in list_of_iters for item in iter]
     return flat
 
-def seq2coocurrence(seq):
-    """seq2coocurrence
+def seq2cooccurrence(seq):
+    """seq2cooccurrence
     Converts an iterable sequence to a list of the set of tuples that 
-    represent all the possible coocurrences.
+    represent all the possible cooccurrences.
 
     Args:
         seq (:obj:`iter`): List of elements
         dedupe(
 
     Returns:
-        coocurrences (:obj:`list` of :obj:`tuple`): List of tuples. Each
+        cooccurrences (:obj:`list` of :obj:`tuple`): List of tuples. Each
             tuple is sorted.
 
     Examples:
         >>> doc = ['me', 'myself', 'irene']
 
-        >>> sorted(seq2coocurrence(doc))
+        >>> sorted(seq2cooccurrence(doc))
         [('irene', 'me'), ('irene', 'myself'), ('me', 'myself')]
     """
     combos = list(itertools.combinations(set(seq), r=2))
-    coocurrences = list(set([tuple(sorted(c)) for c in combos]))
-    return coocurrences
+    cooccurrences = list(set([tuple(sorted(c)) for c in combos]))
+    return cooccurrences
 
 def window(seq, n=3):
     """window
@@ -100,9 +103,9 @@ def window(seq, n=3):
 #         return self.occurences[self.label2vertex[label]]
 
 
-#     def get_coocurrence(self, label_0, label_1):
-#         """get_edge_coocurrence
-#         Get the number of coocurrences between two labels.
+#     def get_cooccurrence(self, label_0, label_1):
+#         """get_edge_cooccurrence
+#         Get the number of cooccurrences between two labels.
 # 
 #         Args:
 #             label_0: A label from the sequence.
@@ -113,40 +116,40 @@ def window(seq, n=3):
 #         """
 #         i_0 = self.label2vertex[label_0]
 #         i_1 = self.label2_vertex[label_1]
-#         co = self.coocurrences[i_0][i_1]
+#         co = self.cooccurrences[i_0][i_1]
 #         return co
 
-# def edge_coocurrence_counts(coocurrences):
-#     """coocurrence_counts
-#     Takes a corpus of document coocurrence combinations and returns a
+# def edge_cooccurrence_counts(cooccurrences):
+#     """cooccurrence_counts
+#     Takes a corpus of document cooccurrence combinations and returns a
 #     Counter object for them across the entire corpus.
 #     
 #     Args:
-#         coocurrences (:obj:`list` of :obj:`list` of :obj:`tuple`): 
-#             Corpus of documents expressed as their coocurrence pairs.
+#         cooccurrences (:obj:`list` of :obj:`list` of :obj:`tuple`): 
+#             Corpus of documents expressed as their cooccurrence pairs.
 #             
 #     Returns:
-#         coocurrence_counts (:obj:`Counter`): Counter with keys as edges
-#             and values as number of coocurrences between the two vertices.
+#         cooccurrence_counts (:obj:`Counter`): Counter with keys as edges
+#             and values as number of cooccurrences between the two vertices.
 #     """
-#     coocurrence_counts = Counter(flatten(coocurrences))
-#     return coocurrence_counts
+#     cooccurrence_counts = Counter(flatten(cooccurrences))
+#     return cooccurrence_counts
 # 
-# def vertex_degree_centrality(coocurrence_counts):
+# def vertex_degree_centrality(cooccurrence_counts):
 #     """vertex_degree_centrality
-#     Takes a Counter of edge coocurrences and returns the degree centrality
+#     Takes a Counter of edge cooccurrences and returns the degree centrality
 #     for each vertex.
 #     
 #     Args:
-#         coocurrence_counts (:obj:`Counter`): Counter with keys as edges
-#             and values as number of coocurrences between the two vertices.
+#         cooccurrence_counts (:obj:`Counter`): Counter with keys as edges
+#             and values as number of cooccurrences between the two vertices.
 #             
 #     Returns: 
 #         vertex_degrees (:obj:`Counter`): Counter with keys as vertices
 #             and values as degree centralities.
 #     """
 #     vertex_degrees = Counter()
-#     for vertices, count in coocurrence_counts.items():
+#     for vertices, count in cooccurrence_counts.items():
 #         v_0 = vertices[0]
 #         v_1 = vertices[1]
 #         if v_0 in vertex_degrees:
@@ -161,44 +164,44 @@ def window(seq, n=3):
 # 
 #     return vertex_degrees
 # 
-# def vertex_coocurrence_centrality(coocurrence_counts):
-#     """vertex_coocurrence_centrality
-#     Takes a Counter of edge cooccurences and returns the coocurrence centrality
-#     for each vertex. This is a summation of all coocurrences for each vertex.
+# def vertex_cooccurrence_centrality(cooccurrence_counts):
+#     """vertex_cooccurrence_centrality
+#     Takes a Counter of edge cooccurences and returns the cooccurrence centrality
+#     for each vertex. This is a summation of all cooccurrences for each vertex.
 #     
 #     Args:
-#         coocurrence_counts (:obj:`Counter`): Counter with keys as edges
-#             and values as number of coocurrences between the two vertices.
+#         cooccurrence_counts (:obj:`Counter`): Counter with keys as edges
+#             and values as number of cooccurrences between the two vertices.
 #             
 #     Returns:
-#         vertex_coocurrences (:obj:`Counter`): Counter with keys as vertices
-#             and values as number of coocurrences.
+#         vertex_cooccurrences (:obj:`Counter`): Counter with keys as vertices
+#             and values as number of cooccurrences.
 #     """
 #     
-#     vertex_coocurrences = Counter()
-#     for vertices, count in coocurrence_counts.items():
+#     vertex_cooccurrences = Counter()
+#     for vertices, count in cooccurrence_counts.items():
 #         v_0 = vertices[0]
 #         v_1 = vertices[1]
-#         if v_0 in vertex_coocurrences:
-#             vertex_coocurrences[v_0] += count
+#         if v_0 in vertex_cooccurrences:
+#             vertex_cooccurrences[v_0] += count
 #         else:
-#             vertex_coocurrences[v_0] = count
-#         if v_1 in vertex_coocurrences:
-#             vertex_coocurrences[v_1] += count
+#             vertex_cooccurrences[v_0] = count
+#         if v_1 in vertex_cooccurrences:
+#             vertex_cooccurrences[v_1] += count
 #         else:
-#             vertex_coocurrences[v_1] = count
-#         self.vertex_coocurrences = vertex_coocurrences
-#     return vertex_coocurrences
+#             vertex_cooccurrences[v_1] = count
+#         self.vertex_cooccurrences = vertex_cooccurrences
+#     return vertex_cooccurrences
 # 
 # def edge_assocation_strength(self, n_coocurs, edge_coocurs, source_count,
 #         target_count):
 #     """assocation strength
 #     Calculates the probabalistic assocation strength between two vertices
-#     in a coocurrence network.
+#     in a cooccurrence network.
 # 
 #     Args:
-#         n_coocurs (int): Total number of coocurrences in the network.
-#         edge_coocurs (int): Number coocurrences between the  source and
+#         n_coocurs (int): Total number of cooccurrences in the network.
+#         edge_coocurs (int): Number cooccurrences between the  source and
 #             target vertices. 
 #         source_count (int): Total number of occurences of the source
 #             vertex.
@@ -217,9 +220,9 @@ def window(seq, n=3):
 #         association_strength_prop = self.new_edge_property("float")
 #         for s, t in edges:
 #             association_strength_prop[self.edge(s, t)] = assoc_strength(
-#                     n_coocurrences,
-#                     edge_coocurrences[tuple(sorted([s, t]))],
-#                     vertex_coocurrences[s],
-#                     vertex_coocurrences[t]
+#                     n_cooccurrences,
+#                     edge_cooccurrences[tuple(sorted([s, t]))],
+#                     vertex_cooccurrences[s],
+#                     vertex_cooccurrences[t]
 #                     )
 #             self.edge_properties['association_strength'] = association_strength_prop

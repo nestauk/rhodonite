@@ -1,7 +1,7 @@
 import pytest
 
 from rhodonite.utilities import (edge_property_as_matrix, flatten, window,
-        seq2coocurrence)
+        seq2cooccurrence)
 
 def test_flatten_list_of_lists():
     nested = [
@@ -12,24 +12,24 @@ def test_flatten_list_of_lists():
     flat = ['a', 'b', 'c', 'd', 'e', 'f']
     assert flatten(nested) == flat
 
-def test_seq2coocurrence_no_duplicates():
+def test_seq2cooccurrence_no_duplicates():
     doc = ['me', 'myself', 'irene']
     co_expected = sorted([
         ('irene', 'me'),
         ('irene', 'myself'),
         ('me', 'myself')
         ])
-    co = sorted(seq2coocurrence(doc))
+    co = sorted(seq2cooccurrence(doc))
     assert co == co_expected
 
-def test_seq2coocurrence_duplicates():
+def test_seq2cooccurrence_duplicates():
     doc = ['me', 'me', 'me', 'myself', 'irene']
     co_expected = sorted([
         ('irene', 'me'),
         ('irene', 'myself'),
         ('me', 'myself')
         ])
-    co = sorted(seq2coocurrence(doc))
+    co = sorted(seq2cooccurrence(doc))
     assert co == co_expected
 
 def test_window_n3_no_duplicates():

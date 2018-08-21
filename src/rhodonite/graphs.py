@@ -1,13 +1,13 @@
-from rhodonite.base import CoocurrenceGraph
-from rhodonite.utilities import window, flatten, seq2coocurrence
-from rhodonite.spectral import coocurrences, occurrences
+from rhodonite.base import CooccurrenceGraph
+from rhodonite.utilities import window, flatten, seq2cooccurrence
+from rhodonite.spectral import cooccurrences, occurrences
 
 
-class SlidingWindowGraph(CoocurrenceGraph):
+class SlidingWindowGraph(CooccurrenceGraph):
 
     def __init__(self, window_size=3, **kwargs):
         """SlidingWindowGraph
-        A coocurrence graph built using a sliding window method.
+        A cooccurrence graph built using a sliding window method.
         
         Args:
             **kwargs:
@@ -17,17 +17,17 @@ class SlidingWindowGraph(CoocurrenceGraph):
                 to their corresponding vertex id in the graph.
             n_edges (int): Total number of edges in the graph. Calculated when
                 the graph is built.
-            n_coocurrences (int): Total number of coocurrences in the graph.
+            n_cooccurrences (int): Total number of cooccurrences in the graph.
                 Calculated when the graph is built.
         """
         super().__init__(directed=False, **kwargs)
         self.window_size = window_size
         self.n_edges = 0
-        self.n_coocurrences = 0
+        self.n_cooccurrences = 0
 
-    def sliding_window_coocurrences(self, seqs, n):
-        """sliding_window_coocurrences
-        Converts a sequments in a corpus into lists of coocurrence tuples 
+    def sliding_window_cooccurrences(self, seqs, n):
+        """sliding_window_cooccurrences
+        Converts a sequments in a corpus into lists of cooccurrence tuples 
         using a sliding window method. The window moves across each 
         sequment, and on each iteration, links the term at the centre of 
         each window with the terms on either side.
@@ -38,15 +38,15 @@ class SlidingWindowGraph(CoocurrenceGraph):
             n (int): Size of the window.
 
         Returns:
-            coocurrences:
+            cooccurrences:
         """
         s_w_c = []
         for seq in seqs:
             seq_indices = range(len(seq))
             seq_indices = window(seq_indices, n=n)
-            seq_indices = flatten([seq2coocurrence(t) for t in seq_indices])
+            seq_indices = flatten([seq2cooccurrence(t) for t in seq_indices])
             seq = [sorted((seq[a], seq[b])) for a, b in list(set(seq_indices))]
-            seq = [tuple((a, b)) for a, b in seq if a !=b]
+            seq = sorted([tuple((a, b)) for a, b in seq if a !=b])
             s_w_c.append(seq)
         return s_w_c
     
@@ -65,36 +65,36 @@ class SlidingWindowGraph(CoocurrenceGraph):
         self.sequences = sequences
         self.dictionary = dictionary
 
-        # convert the sequence elements to integer ids and get coocurrences
+        # convert the sequence elements to integer ids and get cooccurrences
         labels = sorted(list(set(flatten(self.sequences))))
         self.n_vertices = len(labels)
         if self.dictionary is None:
             self.dictionary = {k: v for k, v in zip(labels, range(len(labels)))}
-            id2vertex = {i: i for i in range(n_vertices)}
+            id2vertex = {i: i for i in range(self.n_vertices)}
         else:
             id2vertex = {v: i for v, i in
-                    zip(self.dictionary.values(), range(n_vertices))}
+                    zip(self.dictionary.values(), range(self.n_vertices))}
         
         # create a dict to access vertices by their labels
         self.label2vertex = {}
         for label, id in self.dictionary.items():
             self.label2vertex[label] = id2vertex[id]
-
-        self.add_vertex(n_vertices)
-        sequences_ids = [self.sequence2verticses(s) for s in self.sequences]
+        
+        self.add_vertex(self.n_vertices)
+        self.sequences_ids = [self.sequence2vertices(s) for s in self.sequences]
         o = occurrences(self)
         self.vertex_properties['occurrences'] = o
 
-        self.sequence_coocurrences = self.sliding_window_coocurrences(
-                sequences_ids,
+        self.sequence_cooccurrences = self.sliding_window_cooccurrences(
+                self.sequences_ids,
                 self.window_size
                 )
-        sequence_coocurrences_flat = flatten(self.sequence_coocurrences)
-        edges = list(set(flatten(self.sequence_coocurrences)))
+        sequence_cooccurrences_flat = flatten(self.sequence_cooccurrences)
+        edges = list(set(flatten(self.sequence_cooccurrences)))
         self.n_edges = len(edges)
         self.add_edge_list(edges)
 
-        self.n_coocurrences = len(sequence_coocurrences_flat)
-        co = coocurrences(self)
-        self.edge_properties['coocurrences'] = co
+        self.n_cooccurrences = len(sequence_cooccurrences_flat)
+        co = cooccurrences(self)
+        self.edge_properties['cooccurrences'] = co
 
