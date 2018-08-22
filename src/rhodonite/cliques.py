@@ -1,8 +1,10 @@
+import itertools
 import os
 import shutil
 
+from collections import defaultdict
 from subprocess import call
-from rhodonite.utilities import save_edgelist, check_and_create_dir
+from rhodonite.utilities import save_edgelist, check_and_create_dir, flatten
 
 
 def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
@@ -51,7 +53,7 @@ def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
         output_dir = os.path.join(output_dir, 'output')
         opts['-o'] = output_dir
     else:
-        opts['-o'] = output_dir	
+        opts['-o'] = output_dir 
     input_path = os.path.abspath(os.path.join(cfinder_path, os.pardir))
     input_path = os.path.join(input_path, 'graph_edges.txt')
     opts['-i'] = input_path
@@ -87,7 +89,7 @@ def load_cliques_cfinder(file_path):
         if len(cd) > 0:
             if cd[0].isdigit():
                 clique = cd.split(' ')[1:-1]
-                clique = tuple([int(i) for i in clique])
+                clique = tuple(sorted([int(i) for i in clique]))
                 cliques.append(clique)
     return cliques
             
@@ -99,3 +101,29 @@ def run_cfinder(cfinder_path, opts):
         opts_list.append(value)
     call(opts_list)
 
+def clique_unions(clique_set):
+    """clique_unions
+    """
+    mapping = defaultdict(list)
+    for i, cs in enumerate(clique_set):
+        for vertex in cs:
+            mapping[vertex].append(i)
+    mapping = {k: tuple(v) for k, v in mapping.items()}
+    clique_union_index_mapped = set(mapping.values())
+    
+    clique_union_indices = [] 
+    for cuim in clique_union_index_mapped:
+        for l in range(1, len(cuim)+1):
+            for subset in itertools.combinations(cuim, l):
+                clique_union_indices.append(subset)
+    clique_union_indices = list(set(clique_union_indices))
+    
+    clique_union_values = []
+    for cuis in clique_union_indices:
+        values = sorted(set(flatten([clique_set[i] for i in cuis])))
+        clique_union_values.append(values)
+
+    return clique_union_indices, clique_union_values
+
+def jaccard_cliques():
+    pass
