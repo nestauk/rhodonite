@@ -2,7 +2,7 @@ import os
 import shutil
 
 from subprocess import call
-from rhodonite.utilities import save_edgelist
+from rhodonite.utilities import save_edgelist, check_and_create_output_dir
 
 
 def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
@@ -44,26 +44,25 @@ def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
             found by CFinder. Each clique is represented as a tuple of
             vertices.
     """
-
     opts = dict(**opts)
 
     if output_dir is None:
         output_dir = os.path.abspath(os.path.join(cfinder_path, os.pardir))
-        output_dir = os.path.join(output_dir, 'cliques')
+        output_dir = os.path.join(output_dir, 'output')
         opts['-o'] = output_dir
     else:
-        opts['-o'] = output_dir
-	
-    input_path = os.path.join(output_dir, 'graph_edges.txt')
+        opts['-o'] = output_dir	
+    input_path = os.path.abspath(os.path.join(cfinder_path, os.pardir))
+    input_path = os.path.join(input_path, 'graph_edges.txt')
     opts['-i'] = input_path
 
-    if weight:
+    check_and_create_output_dir(output_dir)
+    if weight is not None:
         save_edgelist(g, input_path, weight=weight)
     else:
         save_edgelist(g, input_path)
-    
     run_cfinder(cfinder_path, opts)
-    cliques = load_cliques_cfinder(os.path.join(output_path, 'cliques'))
+    cliques = load_cliques_cfinder(os.path.join(output_dir, 'cliques'))
     if delete_outputs:
         shutil.rmtree(output_dir)
     return cliques
@@ -85,10 +84,11 @@ def load_cliques_cfinder(file_path):
         clique_data = f.read().splitlines()
     cliques = []
     for cd in clique_data:
-        if (len(cd) > 0) & (cd[0].isdigit()):
-            clique = cd.split(' ')[1:]
-            clique = tuple([int(i) for i in clique])
-            cliques.append(clique)
+        if len(cd) > 0:
+            if cd[0].isdigit():
+                clique = cd.split(' ')[1:-1]
+                clique = tuple([int(i) for i in clique])
+                cliques.append(clique)
     return cliques
             
 
