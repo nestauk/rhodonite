@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import pathlib
 
 
 def edge_property_as_matrix(g, prop_name):
@@ -30,7 +31,7 @@ def edge_property_as_matrix(g, prop_name):
             mat[t][s] = val
     return mat
 
-def get_edge_vertex_ids(g, sorted=True):
+def get_edge_vertex_ids(g, sort=True):
     """get_edge_vertex_ids
     Returns a list of tuples containing the source and target for each edge in
     the graph.
@@ -44,7 +45,7 @@ def get_edge_vertex_ids(g, sorted=True):
         A list of source target pairs for every edge in the graph, with the
         format, (source, target).
     """
-    if sorted:
+    if sort:
         return sorted([(int(e.source()), int(e.target())) for e in g.edges()])
     else:
         return [(int(e.source()), int(e.target())) for e in g.edges()]
@@ -81,14 +82,17 @@ def save_edgelist(g, filepath, weight=None):
             edge_prop = weight.get_array()
         with open(filepath, 'w') as f:
             for (s, t), w in zip(edgelist, weight):
-                f.write('{} {} {}'.format(s, t, w))
+                f.write('{} {} {}\n'.format(s, t, w))
     else:
         with open(filepath, 'w') as f:
             for s, t in edgelist:
-                f.write('{} {}'.format(s, t))
+                f.write('{} {}\n'.format(s, t))
 
-def read_cliques():
-    pass
+def check_and_create_dir(dir):
+    """check_and_create_dir
+    Checks whether an output directory exists and creates it.
+    """
+    pathlib.Path(dir).mkdir(parents=True, exist_ok=True)
 
 def flatten(list_of_iters):
     """flatten
