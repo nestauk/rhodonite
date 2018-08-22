@@ -2,7 +2,7 @@ import os
 import shutil
 
 from subprocess import call
-from rhodonite.utilities import save_edgelist, check_and_create_output_dir
+from rhodonite.utilities import save_edgelist, check_and_create_dir
 
 
 def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
@@ -56,7 +56,7 @@ def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
     input_path = os.path.join(input_path, 'graph_edges.txt')
     opts['-i'] = input_path
 
-    check_and_create_output_dir(output_dir)
+    check_and_create_dir(output_dir)
     if weight is not None:
         save_edgelist(g, input_path, weight=weight)
     else:
