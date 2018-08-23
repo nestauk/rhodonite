@@ -24,7 +24,7 @@ def association_strength(g):
     cooccurrences = edge_property_as_matrix(g, 'cooccurrences')
     occurrences = np.array([g.vertex_properties['occurrences'].get_array()])
 
-    a_s_mat = np.divide((2 * g.n_cooccurrences * cooccurrences),
+    a_s_mat = np.dividxe((2 * g.n_cooccurrences * cooccurrences),
             np.multiply(occurrences, occurrences.transpose()))
     a_s = g.new_edge_property('float')
     edge_vertices = [(int(e.source()), int(e.target()))
@@ -46,11 +46,10 @@ def occurrences(g):
     Returns
         occurrences (:obj:`PropertyMap`):
     """
-    
-    occurrence_counts = Counter(flatten(g.sequences_ids))
+    occurrence_counts = Counter(flatten(g.idx_sequences))
     occurrences = g.new_vertex_property('int')
-    for i, count in occurrence_counts.items():
-        occurrences[i] = count
+    for idx, count in occurrence_counts.items():
+        occurrences[g.tokenidx2vertex[idx]] = count
     return occurrences
 
 def cooccurrences(g):
@@ -64,9 +63,11 @@ def cooccurrences(g):
     Returns:
         cooccurrences (:obj:`PropertyMap`):
     """
-    sequences_flat = flatten(g.sequence_cooccurrences)
-    cooccurrence_counts = Counter(sequences_flat)
+    co_sequences_flat = flatten(g.id_co_sequences)
+    cooccurrence_counts = Counter(co_sequences_flat)
     cooccurrences = g.new_edge_property('int')
     for (s, t), co in cooccurrence_counts.items():
+        s = g.tokenidx2vertex[s]
+        t = g.tokenidx2vertex[t]
         cooccurrences[g.edge(s, t)] = co
     return cooccurrences
