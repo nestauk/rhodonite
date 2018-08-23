@@ -24,7 +24,7 @@ def association_strength(g):
     cooccurrences = edge_property_as_matrix(g, 'cooccurrences')
     occurrences = np.array([g.vertex_properties['occurrences'].get_array()])
 
-    a_s_mat = np.dividxe((2 * g.n_cooccurrences * cooccurrences),
+    a_s_mat = np.divide((2 * g.n_cooccurrences * cooccurrences),
             np.multiply(occurrences, occurrences.transpose()))
     a_s = g.new_edge_property('float')
     edge_vertices = [(int(e.source()), int(e.target()))
