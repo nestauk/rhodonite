@@ -95,6 +95,14 @@ def load_cliques_cfinder(file_path):
             
 
 def run_cfinder(cfinder_path, opts):
+    """run_cfinder
+    Calls the CFinder tool with user defined options.
+
+    Args:
+        cfinder_path (str): The path to the CFinder app/executable on the
+            system.
+        opts (dict): Options to use when running CFinder.
+    """
     opts_list = [cfinder_path]
     for flag, value in opts.items():
         opts_list.append(flag)
@@ -103,6 +111,20 @@ def run_cfinder(cfinder_path, opts):
 
 def clique_unions(clique_set):
     """clique_unions
+    Takes a set of network cliques and return all possible combinations of
+    cliques where all cliques in a combination contain at least one common
+    value.
+
+    Args:
+        clique_set (:obj:`iter` of :obj:`iter`): A set of cliques where 
+            each element in the nested iterable contain vertices in the
+            network.
+
+    Returns:
+        clique_union_indices (:obj:`list` of :obj:`tuple`): A list of the
+            combinations of clique indices.
+        clique_union_vertices (:obj:`list` of :obj:`tuple`): A list of the
+            sets of vertices that comprise the clique combinations.
     """
     mapping = defaultdict(list)
     for i, cs in enumerate(clique_set):
@@ -118,12 +140,9 @@ def clique_unions(clique_set):
                 clique_union_indices.append(subset)
     clique_union_indices = list(set(clique_union_indices))
     
-    clique_union_values = []
+    clique_union_vertices = []
     for cuis in clique_union_indices:
         values = sorted(set(flatten([clique_set[i] for i in cuis])))
-        clique_union_values.append(values)
+        clique_union_vertices.append(values)
 
-    return clique_union_indices, clique_union_values
-
-def jaccard_cliques():
-    pass
+    return clique_union_indices, clique_union_vertices
