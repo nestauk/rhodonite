@@ -9,21 +9,20 @@ from rhodonite.similarity import jaccard_similarity
 class PhylomemeticGraph(Graph):
     
     def __init__(self, graphs, weights, dictionary, delta=0.5,
-            min_clique_size=3, max_weight=None, min_weight=None):
+            min_clique_size=3, max_weight=None, min_weight=None, **kwargs):
         """PhylomemeticGraph
         """
-
+        super().__init__(**kwargs)
         self.graphs = graphs
-        if type(normalisation_weight) == str:
+        if type(weights) == str:
             self.weights = [g.edge_properties[weights] for g in self.graphs]
         else:
             self.weights = weights
         self.dictionary = dictionary
-        self.names = names
-        self.normalisation_weight = normalisation_weight
         self.delta = delta
         self.min_clique_size = min_clique_size
         self.max_weight = max_weight
+        self.min_weight = min_weight
 
         self.new_vertex_property('vector<int>')
 
@@ -34,10 +33,20 @@ class PhylomemeticGraph(Graph):
         """
 
         self.clique_sets = []
-        for graph, weight, name in zip(self.graphs, self.weights, self.names):
+        for graph, weight in zip(self.graphs, self.weights):
             # create a subgraph based on the min and max weight thresholds
-            thresh_graph = GraphView(graph,
-                    efilt=lambda e: min_weight <= weight <= max_weight)
+            if (self.min_weight is not None) & (self.max_weight is None):
+                thresh_graph = GraphView(graph,
+                    efilt=lambda e: self.min_weight <= weight)
+            elif (self.max_weight is not None) & (self.min_weight is None):
+                thresh_graph = GraphView(graph,
+                    efilt=lambda e: weight <= self.max_weight)
+            elif (self.max_weight is not None) & (self.min_weight is not None):
+                thresh_graph = GraphView(graph,
+                    efilt=lambda e: self.min_weight <= weight <= self.max_weight)
+            else:
+                thresh_graph = graph
+
             # find all cliques in the subgraph
             cliques = find_cliques_cfinder(thresh_graph, cfinder_path)
             cliques = [c for c in cliques if len(c) >= self.min_clique_size]
