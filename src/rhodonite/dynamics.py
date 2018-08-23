@@ -3,15 +3,16 @@ from graph_tool.all import Graph, GraphView
 from operator import itemgetter
 
 from rhodonite.cliques import find_cliques_cfinder, clique_unions
-from rhodonite.similarity import jaccard
+from rhodonite.similarity import jaccard_similarity
 
 
-class PhylomemticGraph(Graph):
+class PhylomemeticGraph(Graph):
     
     def __init__(self, graphs, weights, dictionary, delta=0.5,
             min_clique_size=3, max_weight=None, min_weight=None):
         """PhylomemeticGraph
         """
+
         self.graphs = graphs
         if type(normalisation_weight) == str:
             self.weights = [g.edge_properties[weights] for g in self.graphs]
@@ -30,7 +31,6 @@ class PhylomemticGraph(Graph):
 
     def prepare(self, cfinder_path, clique_output_dir):
         """prepare
-
         """
 
         self.clique_sets = []
@@ -57,7 +57,6 @@ class PhylomemticGraph(Graph):
             
             future_vertices_start = len(list(self.vertices()))
             
-
             cp_union_indices, cp_union_vertices = clique_unions(cliques_past)
             cp_matrix = np.zeros(
                     (len(cp_union_vertices), self.n_cooccurences_vertices))
@@ -76,9 +75,8 @@ class PhylomemticGraph(Graph):
                     parent_clique_indices = flatten(np.argwhere(
                         jaccard_similarities == np.max(jaccard_similarities)))
 
-                        parent_cliques = flatten(
-                                itemgetter(*parent_clique_indices)(cliques_past))
-                        for pc in parent_cliques:
-                            phylomemetic_links.append((pc, future_clique_vertex))
-
+                    parent_cliques = flatten(
+                            itemgetter(*parent_clique_indices)(cliques_past))
+                    for pc in parent_cliques:
+                        phylomemetic_links.append((pc, future_clique_vertex))
 

@@ -68,13 +68,14 @@ class SlidingWindowGraph(CooccurrenceGraph):
         # convert the sequence elements to integer ids and get cooccurrences
         labels = sorted(list(set(flatten(self.sequences))))
         self.n_vertices = len(labels)
+
         if self.dictionary is None:
             self.dictionary = {k: v for k, v in zip(labels, range(len(labels)))}
             id2vertex = {i: i for i in range(self.n_vertices)}
         else:
             id2vertex = {v: i for v, i in
                     zip(self.dictionary.values(), range(self.n_vertices))}
-        
+                
         # create a dict to access vertices by their labels
         self.label2vertex = {}
         for label, id in self.dictionary.items():
