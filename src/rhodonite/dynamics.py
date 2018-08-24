@@ -1,9 +1,11 @@
 from collections import defaultdict
 from graph_tool.all import Graph, GraphView
+import numpy as np
 from operator import itemgetter
 
-from rhodonite.cliques import find_cliques_cfinder, clique_unions
+from rhodonite.cliques import find_cliques_cfinder, clique_unions, find_maximal_cliques, filter_subsets
 from rhodonite.similarity import jaccard_similarity
+from rhodonite.utilities import window
 
 
 class PhylomemeticGraph(Graph):
@@ -50,7 +52,7 @@ class PhylomemeticGraph(Graph):
             # find all cliques in the subgraph
             cliques = find_cliques_cfinder(thresh_graph, cfinder_path)
             cliques = [c for c in cliques if len(c) >= self.min_clique_size]
-            self.clique_sets.append(clique_sets)
+            self.clique_sets.append(cliques)
 
     def build(self):
         """build
@@ -65,18 +67,26 @@ class PhylomemeticGraph(Graph):
             self.add_edge_list(phylomemetic_links)
             
             future_vertices_start = len(list(self.vertices()))
-            
-            cp_union_indices, cp_union_vertices = clique_unions(cliques_past)
-            cp_matrix = np.zeros(
-                    (len(cp_union_vertices), self.n_cooccurences_vertices))
-            for i, cuv in enumerate(cp_union_vertices):
-                rows = [i] * len(cuv)
-                cp_matrix[rows, cuv]
+
+            vertex_cp_mapping = clique_unions(cliques_past)
 
             for i, cf in enumerate(cliques_future):
+                # find all groups of overlapping cliques
+                cp_subset = list(set([vertex_cp_mapping[v] for v in cf]))
+                # remove any groups that are subsets
+                cp_subset = list(filter_subsets(cp_subset))
+                # find maximal cliques
+                cp_union_indices, cp_union_vertices = find_maximal_cliques(cp_subset, cliques_past)
+                cp_matrix = np.zeros(
+                        (len(cp_union_vertices), self.n_cooccurrence_vertices))
+                for i, cuv in enumerate(cp_union_vertices):
+                    rows = [i] * len(cuv)
+                    cp_matrix[rows, cuv]
+
+#              for i, cf in enumerate(cliques_future):
                 future_clique_vertex = i + future_vertices_start
 
-                cf_vector = np.zeros(len(self.n_cooccurrence_vertices))
+                cf_vector = np.zeros(self.n_cooccurrence_vertices)
                 cf_vector = np.put(cf_vector, cf, 1)
                 jaccard_similarities = jaccard_similarity(cf_vector, cp_matrix)
 
