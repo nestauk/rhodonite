@@ -111,14 +111,14 @@ def run_cfinder(cfinder_path, opts):
         opts_list.append(value)
     call(opts_list)
 
-def generate_clique_combos(sets):
-    for cuim in sets:
-        for l in range(2, len(cuim)+1):
-            for subset in itertools.combinations(cuim, l):
-                yield subset
+def generate_clique_combinations(cliques, limit):
+    for c in cliques:
+        for l in range(2, limit):
+            for subset in itertools.combinations(c, l):
+                yield tuple(subset)
 
-def clique_unions(clique_set):
-    """clique_unions
+def reverse_index_cliques(clique_set):
+    """reverse_index_cliques
     Takes a set of network cliques and return all possible combinations of
     cliques where all cliques in a combination contain at least one common
     value.
@@ -139,25 +139,40 @@ def clique_unions(clique_set):
         for vertex in cs:
             mapping[vertex].append(i)
     mapping = {k: tuple(v) for k, v in mapping.items()}
-#    clique_union_index_mapped = list(set(mapping.values()))
-
-#    clique_union_index_mapped = list(filter_subsets(clique_union_index_mapped))
     return mapping
 
-#    clique_union_indices = list(set(
-#        generate_clique_combos(clique_union_index_mapped)))
+def clique_unions(clique_index_sets, clique_set, limit):
+    clique_combination_indices = []
+    for combination in generate_clique_combinations(
+           clique_index_sets, limit):
+        clique_combination_indices.append(combination)
+    clique_combination_indices = list(set(clique_combination_indices))
+   
+    clique_combination_vertices = []
+    for cui in clique_combination_indices:
+        combination_vertices = list(set(flatten([clique_set[i] for i in cui])))
+        clique_combination_vertices.append(combination_vertices)
 
-def find_maximal_cliques(clique_subset, clique_set):
-#    clique_union_indices = [] 
-#    for cuim in clique_union_index_mapped:
-#        for l in range(1, len(cuim)+1):
-#            for subset in itertools.combinations(cuim, l):
-#                clique_union_indices.append(subset)
-#    clique_union_indices = list(set(clique_union_indices))
-    
-    clique_union_vertices = []
-    for cuis in generate_clique_combos(clique_subset):
-        values = sorted(set(flatten([clique_set[i] for i in cuis])))
-        clique_union_vertices.append(values)
+    return clique_combination_indices, clique_combination_vertices
 
-    return clique_union_indices, clique_union_vertices
+def is_subset(needle,haystack):
+   """ Check if needle is ordered subset of haystack in O(n)  """
+
+   if len(haystack) < len(needle): return False
+
+   index = 0
+   for element in needle:
+      try:
+         index = haystack.index(element, index) + 1
+      except ValueError:
+         return False
+   else:
+      return True
+
+def filter_subsets(lists):
+   """ Given list of lists, return new list of lists without subsets  """
+
+   for needle in lists:
+      if not any(is_subset(needle, haystack) for haystack in lists
+         if needle is not haystack):
+         yield needle

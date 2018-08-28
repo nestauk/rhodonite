@@ -75,6 +75,9 @@ class SlidingWindowGraph(CooccurrenceGraph):
             vertex_token_idxs[i] = self.dictionary.token2id[token]
             self.token2vertex[token] = i
             self.tokenidx2vertex[self.dictionary.token2id[token]] = i
+        
+        self.vertex_properties['vertex_tokens'] = vertex_tokens
+        self.vertex_properties['vertex_token_idxs'] = vertex_token_idxs
 
         self.idx_sequences = [self.dictionary.doc2idx(s)
                 for s in self.sequences]
@@ -102,4 +105,5 @@ class SlidingWindowGraph(CooccurrenceGraph):
         self.n_cooccurrences = len(co_sequences_flat)
         co = cooccurrences(self)
         self.edge_properties['cooccurrences'] = co
+        return self
 
