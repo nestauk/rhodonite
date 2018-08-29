@@ -7,8 +7,8 @@ from subprocess import call
 from rhodonite.utilities import save_edgelist, check_and_create_dir, flatten
 
 
-def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
-        weight=None, **opts):
+def find_cliques_cfinder(g, cfinder_path, output_dir=None, licence_path=None,
+        delete_outputs=True, weight=None, **opts):
     """find_cliques_cfinder
     Finds the cliques in a graph using the CFinder tool.
 
@@ -51,12 +51,15 @@ def find_cliques_cfinder(g, cfinder_path, output_dir=None, delete_outputs=True,
     if output_dir is None:
         output_dir = os.path.abspath(os.path.join(cfinder_path, os.pardir))
         output_dir = os.path.join(output_dir, 'output')
-        opts['-o'] = output_dir
-    else:
-        opts['-o'] = output_dir 
+    opts['-o'] = output_dir
+
     input_path = os.path.abspath(os.path.join(cfinder_path, os.pardir))
     input_path = os.path.join(input_path, 'graph_edges.txt')
     opts['-i'] = input_path
+
+    if licence_path is None:
+         licence_path = os.path.abspath(os.path.join(cfinder_path, os.pardir))
+    opts['-l'] = os.path.join(licence_path, 'licence.txt')
 
     check_and_create_dir(output_dir)
     if weight is not None:
@@ -93,7 +96,6 @@ def load_cliques_cfinder(file_path):
                 cliques.append(clique)
     return cliques
             
-
 def run_cfinder(cfinder_path, opts):
     """run_cfinder
     Calls the CFinder tool with user defined options.
@@ -109,8 +111,14 @@ def run_cfinder(cfinder_path, opts):
         opts_list.append(value)
     call(opts_list)
 
-def clique_unions(clique_set):
-    """clique_unions
+def generate_clique_combinations(cliques, limit):
+    for c in cliques:
+        for l in range(2, limit):
+            for subset in itertools.combinations(c, l):
+                yield tuple(subset)
+
+def reverse_index_cliques(clique_set):
+    """reverse_index_cliques
     Takes a set of network cliques and return all possible combinations of
     cliques where all cliques in a combination contain at least one common
     value.
@@ -131,18 +139,40 @@ def clique_unions(clique_set):
         for vertex in cs:
             mapping[vertex].append(i)
     mapping = {k: tuple(v) for k, v in mapping.items()}
-    clique_union_index_mapped = set(mapping.values())
-    
-    clique_union_indices = [] 
-    for cuim in clique_union_index_mapped:
-        for l in range(1, len(cuim)+1):
-            for subset in itertools.combinations(cuim, l):
-                clique_union_indices.append(subset)
-    clique_union_indices = list(set(clique_union_indices))
-    
-    clique_union_vertices = []
-    for cuis in clique_union_indices:
-        values = sorted(set(flatten([clique_set[i] for i in cuis])))
-        clique_union_vertices.append(values)
+    return mapping
 
-    return clique_union_indices, clique_union_vertices
+def clique_unions(clique_index_sets, clique_set, limit):
+    clique_combination_indices = []
+    for combination in generate_clique_combinations(
+           clique_index_sets, limit):
+        clique_combination_indices.append(combination)
+    clique_combination_indices = list(set(clique_combination_indices))
+   
+    clique_combination_vertices = []
+    for cui in clique_combination_indices:
+        combination_vertices = list(set(flatten([clique_set[i] for i in cui])))
+        clique_combination_vertices.append(combination_vertices)
+
+    return clique_combination_indices, clique_combination_vertices
+
+def is_subset(needle,haystack):
+   """ Check if needle is ordered subset of haystack in O(n)  """
+
+   if len(haystack) < len(needle): return False
+
+   index = 0
+   for element in needle:
+      try:
+         index = haystack.index(element, index) + 1
+      except ValueError:
+         return False
+   else:
+      return True
+
+def filter_subsets(lists):
+   """ Given list of lists, return new list of lists without subsets  """
+
+   for needle in lists:
+      if not any(is_subset(needle, haystack) for haystack in lists
+         if needle is not haystack):
+         yield needle

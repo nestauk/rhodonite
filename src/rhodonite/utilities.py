@@ -18,17 +18,19 @@ def edge_property_as_matrix(g, prop_name):
     """
 
     mat = np.zeros((g.n_vertices, g.n_vertices))
-    prop_vals = g.edge_properties[prop_name].get_array()
+    prop = g.edge_properties[prop_name]
     edges = sorted(g.edges())
-    sources = [int(e.source()) for e in edges]
-    targets = [int(e.target()) for e in edges]
     if g.is_directed():
-        for s, t, val in zip(sources, targets, prop_vals):
-            mat[s][t] = val
+        for e in edges:
+            s = int(e.source())
+            t = int(e.target())            
+            mat[s][t] = prop[e]
     else:
-        for s, t, val in zip(sources, targets, prop_vals):
-            mat[s][t] = val
-            mat[t][s] = val
+        for e in edges:
+            s = int(e.source())
+            t = int(e.target())            
+            mat[s][t] = prop[e]
+            mat[t][s] = prop[e]
     return mat
 
 def get_edge_vertex_ids(g, sort=True):
