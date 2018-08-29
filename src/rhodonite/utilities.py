@@ -3,6 +3,21 @@ import numpy as np
 import pathlib
 
 
+def clear_graph(g):
+    """clear_graph
+    Removes all edges and vertices from the graph.
+    
+    Args:
+        g (:obj:`Graph`): A graph.
+    """
+
+    if len(list(g.edges())) > 0:
+        for e in g.edges():
+            g.remove_edge(e)
+    if len(list(g.vertices())) > 0:
+        for v in reversed(sorted(g.vertices())):
+            g.remove_vertex(v)
+
 def edge_property_as_matrix(g, prop_name):
     """edge_property_as_matrix
     Returns an edge property as a matrix. If the graph is undirected, a

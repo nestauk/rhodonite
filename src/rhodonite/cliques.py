@@ -142,12 +142,17 @@ def reverse_index_cliques(clique_set):
     return mapping
 
 def clique_unions(clique_index_sets, clique_set, limit):
+    """clique_unions
+    Takes sets of cliques, represented by their indices, and returns the
+    possible combinations of them, as well as the vertices that they are
+    comprised from.
+    """
     clique_combination_indices = []
     for combination in generate_clique_combinations(
            clique_index_sets, limit):
         clique_combination_indices.append(combination)
     clique_combination_indices = list(set(clique_combination_indices))
-   
+
     clique_combination_vertices = []
     for cui in clique_combination_indices:
         combination_vertices = list(set(flatten([clique_set[i] for i in cui])))
