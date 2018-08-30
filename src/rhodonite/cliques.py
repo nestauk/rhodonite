@@ -61,11 +61,11 @@ def find_cliques_cfinder(g, cfinder_path, output_dir=None, licence_path=None,
          licence_path = os.path.abspath(os.path.join(cfinder_path, os.pardir))
     opts['-l'] = os.path.join(licence_path, 'licence.txt')
 
-    check_and_create_dir(output_dir)
     if weight is not None:
         save_edgelist(g, input_path, weight=weight)
     else:
         save_edgelist(g, input_path)
+
     run_cfinder(cfinder_path, opts)
     cliques = load_cliques_cfinder(os.path.join(output_dir, 'cliques'))
     if delete_outputs:
