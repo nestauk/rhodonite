@@ -126,6 +126,23 @@ class PhylomemeticGraph(Graph):
             self.clique_sets.append(cliques_harmonised)
 
         return self
+    
+    def filter_cliques(self, cliques_set, min_clique_size):
+        """filter_cliques
+        Returns the cliques in a series that are larger than the minimum clique
+        size.
+
+        Args:
+            cliques_set (:obj:`iter` of :obj:`iter`): Series of iterables
+                containing the vertices that make up cliques.
+            min_clique_size (int): The threshold size.
+
+        Returns:
+            csf (:obj:`iter` of :obj:`iter`): Series of filtered cliques that
+                have length greater than or equal to min_clique_size.
+        """
+        csf = [c for c in cliques_set if len(c) >= min_clique_size]
+        return csf
 
     def build(self, workers=4, min_clique_size=3, log_every=500):
         """build
@@ -136,14 +153,14 @@ class PhylomemeticGraph(Graph):
         phylomemetic_links = []
         
         for t, (cliques_past, cliques_future) in enumerate(window(self.clique_sets, 2)):
-            cliques_past = [c for c in cliques_past if len(c) >= min_clique_size]
-            cliques_future = [c for c in cliques_future if len(c) >= min_clique_size]
+            cliques_past = self.filter_cliques(cliques_past, min_clique_size)
+            cliques_future = self.filter_cliques(cliques_future, min_clique_size)
             vertex_cp_mapping = reverse_index_cliques(cliques_past)
 
             n_cf = len(cliques_future)
 
             vocab = list(set(flatten(cliques_past) + flatten(cliques_future)))
-            binarizer = MultiLabelBinarizer(classes=vocab)
+            binarizer = MultiLabelBinarizer(classes=vocab, sparse_output=True)
             # pre-fit to full vocab for speed
             # means will only need to transform on each iteration
             binarizer.fit(range(0, len(vocab)))
@@ -169,7 +186,8 @@ class PhylomemeticGraph(Graph):
 
         filtered_cliques = []
         for clique_set in self.clique_sets:
-            filtered_cliques.append([c for c in clique_set if len(c) >= min_clique_size])
+            filtered_cliques.append(
+                    self.filter_cliques(clique_set, min_clique_size))
 
         total_cliques = sum([len(c) for c in filtered_cliques])
         if len(list(self.vertices())) == 0:
