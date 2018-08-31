@@ -42,45 +42,36 @@ def find_links(args):
             [cf for _ in range(len(cps))]
             )
     jaccard_similarities = jaccard_similarity(cf_matrix, cp_matrix)
-    indices = flatten(np.argwhere(
-        jaccard_similarities > delta_0))
+    cp_indexes = np.nonzero(
+        jaccard_similarities > delta_0)[0]
 
-    if len(indices) > 0:
-        cp_thresh = [cps[i] for i in indices]
-        map_back = {i_c: i_p for i_c, i_p in zip(range(len(indices)), indices)}
-        vertex_cp_mapping = reverse_index_cliques(cp_thresh) 
-        # find all groups of overlapping cliques
-        cp_indexes = list(set([vertex_cp_mapping[v]
-            for v in cf if v in vertex_cp_mapping]))
-        # remove any groups that are subsets
-        cp_indexes = list(filter_subsets(cp_indexes))
-        if len(cp_indexes) > 0:
-            # find maximal cliques
-            cp_union_indices, cp_union_vertices = clique_unions(
-                    cp_indexes, cp_thresh, parent_limit)
+    if len(cp_indexes) > 0:
+        cp_thresh = [cps[i] for i in cp_indexes]
+        map_back = {i_c: i_p for i_c, i_p in zip(range(len(cp_indexes)), cp_indexes)}
+        cp_union_indices = clique_unions(cp_indexes, parent_limit)
+        cp_union_vertices = []
+        for cui in cp_union_indices:
+            cuv = set(flatten([cps[i] for i in cui]))
+            cp_union_vertices.append(cuv)
+        cp_matrix_thresh = transformer.transform(cp_union_vertices)
+        cf_matrix = transformer.transform(
+                [cf for _ in range(len(cp_union_vertices))]
+            )
 
-            cp_matrix_thresh = transformer.transform(cp_union_vertices)
-            cf_matrix = transformer.transform(
-                    [cf for _ in range(len(cp_union_vertices))]
-                )
-
-#         cf_vector = clique_matrix[-1]
-#         cp_matrix = clique_matrix[:-1]
-
-            jaccard_similarities_1 = jaccard_similarity(cf_matrix, cp_matrix_thresh)
-            links = []
-            try:
-                if np.max(jaccard_similarities_1) >= delta_1:
-                    parent_clique_indices = flatten(np.argwhere(
-                        jaccard_similarities_1 == np.max(jaccard_similarities_1)))
-                    parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
-                    if any(isinstance(i, tuple) for i in parent_cliques):
-                        parent_cliques = flatten(parent_cliques)
-                    for pc in parent_cliques:
-                        links.append((map_back[pc] + cpc, future_clique_vertex))
-                    return links
-            except ValueError:
-                pass
+        jaccard_similarities_1 = jaccard_similarity(cf_matrix, cp_matrix_thresh)
+        links = []
+        try:
+            if np.max(jaccard_similarities_1) >= delta_1:
+                parent_clique_indices = flatten(np.argwhere(
+                    jaccard_similarities_1 == np.max(jaccard_similarities_1)))
+                parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
+                if any(isinstance(i, tuple) for i in parent_cliques):
+                    parent_cliques = flatten(parent_cliques)
+                for pc in parent_cliques:
+                    links.append((pc + cpc, future_clique_vertex))
+                return links
+        except ValueError:
+            pass
 
 class PhylomemeticGraph(Graph):
     
@@ -164,10 +155,15 @@ class PhylomemeticGraph(Graph):
         csf = [c for c in cliques_set if len(c) >= min_clique_size]
         return csf
 
-    def build(self, workers=4, min_parental_overlap=0.4, min_clique_size=3, log_every=500):
+    def build(self, workers=4, min_clique_size=3):
         """build
         Creates the links in the phylomemetic network between cliques at time T
         and time T'.
+
+        Args:
+            workers (int):
+            min_clique_size (int):
+            log_every
         """
     
         phylomemetic_links = []

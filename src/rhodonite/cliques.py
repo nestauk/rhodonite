@@ -113,7 +113,7 @@ def run_cfinder(cfinder_path, opts):
 
 def generate_clique_combinations(cliques, limit):
     for c in cliques:
-        for l in range(2, limit):
+        for l in range(1, limit):
             for subset in itertools.combinations(c, l):
                 yield tuple(subset)
 
@@ -141,26 +141,33 @@ def reverse_index_cliques(clique_set):
     mapping = {k: tuple(v) for k, v in mapping.items()}
     return mapping
 
-def clique_unions(clique_index_sets, clique_set, limit):
-    """clique_unions
-    Takes sets of cliques, represented by their indices, and returns the
-    possible combinations of them, as well as the vertices that they are
-    comprised from.
-    """
-    clique_combination_indices = []
-    for combination in generate_clique_combinations(
-           clique_index_sets, limit):
-        clique_combination_indices.append(combination)
-    clique_combination_indices = list(set(clique_combination_indices))
+# def clique_unions(clique_index_sets, clique_set, limit):
+#     """clique_unions
+#     Takes sets of cliques, represented by their indices, and returns the
+#     possible combinations of them, as well as the vertices that they are
+#     comprised from.
+#     """
+#     clique_combination_indices = []
+#     for combination in generate_clique_combinations(
+#            clique_index_sets, limit):
+#         clique_combination_indices.append(combination)
+#     clique_combination_indices = list(set(clique_combination_indices))
+# 
+#     clique_combination_vertices = []
+#     for cui in clique_combination_indices:
+#         combination_vertices = list(set(flatten([clique_set[i] for i in cui])))
+#         clique_combination_vertices.append(combination_vertices)
+# 
+#     return clique_combination_indices, clique_combination_vertices
 
-    clique_combination_vertices = []
-    for cui in clique_combination_indices:
-        combination_vertices = list(set(flatten([clique_set[i] for i in cui])))
-        clique_combination_vertices.append(combination_vertices)
+def clique_unions(clique_indices, limit):
+    combos = []
+    for l in range(1, limit):
+        for combo in itertools.combinations(clique_indices, l):
+            combos.append(tuple(combo))
+    return combos
 
-    return clique_combination_indices, clique_combination_vertices
-
-def is_subset(needle,haystack):
+def is_subset(needle, haystack):
    """ Check if needle is ordered subset of haystack in O(n)  """
 
    if len(haystack) < len(needle): return False
