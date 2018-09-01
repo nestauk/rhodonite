@@ -4,7 +4,7 @@ import os
 
 from collections import defaultdict
 from graph_tool.all import Graph, GraphView
-from itertools import repeat
+from itertools import repeat, combinations
 from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool
@@ -234,16 +234,46 @@ class PhylomemeticGraph(Graph):
         clique_times = self.new_vertex_property('int')
         clique_terms = self.new_vertex_property('vector<int>')
         clique_color = self.new_vertex_property('float')
+        clique_densities = self.new_vertex_property('float')
        
         for i, ((start, end), cliques) in enumerate(zip(clique_sets_pos, clique_sets)):
             vertices = range(start, end)
             for vertex, c in zip(vertices, cliques):
+                clique_densities[vertex] = self.calculate_clique_density(
+                        c, self.graphs[i])
                 clique_terms[vertex] = np.array(c)
                 clique_times[vertex] = self.times[i]
                 clique_color[vertex] = self.colors[i]
-
+        
+        self.vp['density'] = clique_densities
         self.vp['terms'] = clique_terms
         self.vp['times'] = clique_times
         self.vp['color'] = clique_color
         
         return self
+
+    def calculate_clique_density(self, clique_terms, g):
+        """calculate_clique_density
+        Calculate the density of a clique based on the number of occurrences
+        and coocurrences of the terms within it. Based on Callon et al. 1991.
+
+        Args:
+            clique_terms (:obj:`iter` of int): A set of terms that comprise
+                a single clique.
+            g (:obj:`Graph`): The coocurrence graph from which the clique
+                originated
+        Returns:
+            density (float): The density of the clique.
+        """
+        clique_terms = [g.tokenidx2vertex[i] for i in clique_terms]
+        card = len(clique_terms)
+        co = []
+        o = []
+        for i, j in combinations(clique_terms, 2):
+            o_i = g.vp['occurrences'][i]
+            o_j = g.vp['occurrences'][j]
+            o.append(o_i * o_j)
+            co.append(g.ep['cooccurrences'][(i, j)])
+        density = np.divide(np.square(co), o)
+        return density
+
