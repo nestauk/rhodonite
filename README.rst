@@ -1,6 +1,4 @@
-=========
-Rhodonite
-=========
+.. image:: ./img/rhodonite_500_77.png
 
 .. start-badges
 
@@ -47,23 +45,35 @@ Rhodonite
 
 .. end-badges
 
-.. image:: ./img/rhodonite_500_77.png
-
 A Python package for the creation and study of coocurrence networks.
 
 
 Installation
 ============
 
+This package is not yet on PyPi. The easiest way to install currently is to
+clone this repository and inside the main root directory, run
+
 ::
 
-    pip install rhodonite
+    pip install -e .
 
-This package is built on ``graph-tool``. For installation instructions, see
-the website.
+
+Requirements
+============
+
+This package is built on ``graph-tool``. Compiling this can take a long time
+and 4GB of memory. Pre-compiled versions are available. If you are using Conda
+as your package manager then instructions for installation are available
+
+- Linux_
+- OSX_
+
+.. _Linux: https://gitlab.com/ostrokach-forge/graph-tool
+.. _OSX: https://anaconda.org/ruliana/graph-tool
 
 Some functionality in this package also requires the CFinder tool, which can
-be downloaded from their website.
+be downloaded from http://www.cfinder.org/
 
 .. Documentation
 .. =============
