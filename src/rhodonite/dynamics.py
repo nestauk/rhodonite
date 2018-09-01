@@ -16,33 +16,18 @@ from rhodonite.utilities import window, flatten, clear_graph
 
 import time
 
+
 logger = logging.getLogger(__name__)
 
-# def find_exact_parents(args):
-#     exact_phylomemetic_links = []
-#     child_indices = []
-#     binarize all clique sets
-#     for clique_set in clique_sets[1:]:
-#         for i, clique in enumerate(clique_set):
-#             for past_cliques in reversed(clique_sets[:i]):
-#                 j = jaccard_similarity
-#                 if argmax(j) == 1:
-#                     exact_phylomemetic_links.append()
-#                     child_indices.append()
-#                     break
-#     return exact_phylomemetic_links, child_indices
-
 def find_links(args):
-    cf, cfi, cps, cp_matrix, ppcs, pos, binarizer, delta_0, parent_limit = args
+    cf, cfi, cps, pp_matrices, pos, binarizer, delta_0, parent_limit = args
     
     pos_tmp = pos.copy()
     start_f, end_f = pos_tmp.pop()
     pos_tmp = list(reversed(pos_tmp))
     
     links = []
-    for i, ppc in enumerate(ppcs):
-        print(ppc)
-        pp_matrix = binarizer.transform(ppc)
+    for i, pp_matrix in enumerate(pp_matrices):
         start_p, end_p = pos_tmp[i]
         cf_matrix = binarizer.transform(
                 [cf for _ in range(pp_matrix.shape[0])]
@@ -76,72 +61,16 @@ def find_links(args):
                 [cf for _ in range(cp_matrix_thresh.shape[0])]
                 )
         j_thresh = jaccard_similarity(cf_matrix, cp_matrix_thresh)
-        
         parent_clique_indices = np.nonzero(j_thresh)[0]
-        parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
-        if any(isinstance(i, tuple) for i in parent_cliques):
-            parent_cliques = flatten(parent_cliques)
-        j_parents = [np.max(j) for j in j_thresh if np.max(j) > 0]
+        if len(parent_clique_indices) > 0:
+            parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
+            if any(isinstance(i, tuple) for i in parent_cliques):
+                parent_cliques = flatten(parent_cliques)
+            j_parents = [np.max(j) for j in j_thresh if np.max(j) > 0]
 
-        for pc, j in zip(parent_cliques, j_parents):
-            links.append(((pc + start_p, cfi + start_f), j))
-        return links
-
-# def find_links(args):
-#     """find_links
-#     Finds phylomemetic links between a set of cliques at a time T and a
-#     set of cliques in the future at time T'.
-# 
-#     Args:
-#         clique_f (:obj:`tuple`): A clique from time T'.
-#         clique_f_i
-#         cliques_p (:obj:`list` of :obj:`tuple`): The set of cliques
-#             from time T.
-#         vertex_cliques_p_mapping (:obj:`dict`): A reverse index mapping
-#             of clique values to the list of cliques that they appear
-#             within. e.g. {42: [1, 4, 5, 19]}
-# 
-#     Returns:
-#         
-#     """
-#     cf, cfi, cpc, cp_matrix, cps, transformer, parent_limit, delta_0, delta_1 = args
-# 
-#     future_clique_vertex = cfi
-#     
-#     cf_matrix = transformer.transform(
-#             [cf for _ in range(len(cps))]
-#             )
-#     jaccard_similarities = jaccard_similarity(cf_matrix, cp_matrix)
-#     cp_indexes = np.nonzero(
-#         jaccard_similarities > delta_0)[0]
-# 
-#     if len(cp_indexes) > 0:
-#         cp_thresh = [cps[i] for i in cp_indexes]
-#         map_back = {i_c: i_p for i_c, i_p in zip(range(len(cp_indexes)), cp_indexes)}
-#         cp_union_indices = clique_unions(cp_indexes, parent_limit)
-#         cp_union_vertices = []
-#         for cui in cp_union_indices:
-#             cuv = set(flatten([cps[i] for i in cui]))
-#             cp_union_vertices.append(cuv)
-#         cp_matrix_thresh = transformer.transform(cp_union_vertices)
-#         cf_matrix = transformer.transform(
-#                 [cf for _ in range(len(cp_union_vertices))]
-#             )
-# 
-#         jaccard_similarities_1 = jaccard_similarity(cf_matrix, cp_matrix_thresh)
-#         links = []
-#         try:
-#             if np.max(jaccard_similarities_1) >= delta_1:
-#                 parent_clique_indices = flatten(np.argwhere(
-#                     jaccard_similarities_1 == np.max(jaccard_similarities_1)))
-#                 parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
-#                 if any(isinstance(i, tuple) for i in parent_cliques):
-#                     parent_cliques = flatten(parent_cliques)
-#                 for pc in parent_cliques:
-#                     links.append((pc + cpc, future_clique_vertex))
-#                 return links
-#         except ValueError:
-#             pass
+            for pc, j in zip(parent_cliques, j_parents):
+                links.append(((pc + start_p, cfi + start_f), j))
+            return links
 
 class PhylomemeticGraph(Graph):
     
@@ -260,17 +189,11 @@ class PhylomemeticGraph(Graph):
         # find direct parents
         for i, (cliques_p, cliques_f) in enumerate(window(clique_sets, 2)):
             n_cf = len(cliques_f)
-            vocab = list(set(flatten(cliques_p) + flatten(cliques_f)))
-#             binarizer = MultiLabelBinarizer(classes=vocab, sparse_output=True)
-            # pre-fit to full vocab for speed
-#            binarizer.fit(range(0, len(vocab)))
             cp_matrix = binarizer_all.transform(cliques_p)
 
             possible_parent_matrices = list(
                     reversed(binarized_clique_sets[:i+1])
                     )
-            possible_parent_clique_sets = list(reversed(
-                clique_sets[:i+1]))
             # include positions of the current
             positions = clique_sets_pos[:i+2]
 
@@ -282,67 +205,18 @@ class PhylomemeticGraph(Graph):
                                 cliques_f,
                                 range(0, len(cliques_f)),
                                 repeat(cliques_p, n_cf),
-                                repeat(cp_matrix, n_cf),
-                                repeat(possible_parent_clique_sets, n_cf),
+                                repeat(possible_parent_matrices, n_cf),
                                 repeat(positions, n_cf),
                                 repeat(binarizer_all, n_cf),
                                 repeat(delta_0, n_cf),
                                 repeat(parent_limit, n_cf),
-#                                     repeat(delta_1, 2),
                                 )
                             )
                         )
                     
                 pool.close()
                 pool.join()
-                                        
-            
-#         phylomemetic_links = []
-#         cliques_past_count = 0 
-#         for t, (cliques_past, cliques_future) in enumerate(window(self.clique_sets, 2)):
-#             cliques_past = self.filter_cliques(cliques_past, min_clique_size)
-#             cliques_future = self.filter_cliques(cliques_future, min_clique_size)
-# #             vertex_cp_mapping = reverse_index_cliques(cliques_past)
-# 
-#             n_cf = len(cliques_future)
-# 
-#             vocab = list(set(flatten(cliques_past) + flatten(cliques_future)))
-#             binarizer = MultiLabelBinarizer(classes=vocab, sparse_output=True)
-#             # pre-fit to full vocab for speed
-#             # means will only need to transform on each iteration
-#             binarizer.fit(range(0, len(vocab)))
-#             cf_matrix = binarizer.transform(cliques_past)
-# 
-#             cf_vertex_start = len(cliques_past) + cliques_past_count
-#             cf_vertex_end = cf_vertex_start + n_cf
-#             chunksize = int(n_cf / 10 * workers)
-#             indices = range(cf_vertex_start, cf_vertex_end)
-# 
-#             with Pool(workers) as pool:
-#                 phylomemetic_links.append(pool.map(
-#                         find_links,
-#                             zip(cliques_future, 
-#                                 indices,
-#                                 repeat(cliques_past_count, n_cf),
-#                                 repeat(cf_matrix, n_cf),
-#                                 repeat(cliques_past, n_cf),
-#                                 repeat(binarizer, n_cf),
-#                                 repeat(self.parent_limit, n_cf),
-#                                 repeat(self.delta_0, n_cf),
-#                                 repeat(self.delta_1, n_cf),
-#                                 ),
-#                             chunksize=chunksize
-#                             ))
-#                 pool.close()
-#                 pool.join()
-#             cliques_past_count += len(cliques_past)
-# 
-#         filtered_cliques = []
-#         for clique_set in self.clique_sets:
-#             filtered_cliques.append(
-#                     self.filter_cliques(clique_set, min_clique_size))
-# 
-#         total_cliques = sum([len(c) for c in cliques_set])
+                                            
         if len(list(self.vertices())) == 0:
             self.add_vertex(total_n_cliques)
 
@@ -368,13 +242,6 @@ class PhylomemeticGraph(Graph):
                 clique_times[vertex] = self.times[i]
                 clique_color[vertex] = self.colors[i]
 
-#         vertex = 0
-#         for i, cliques in enumerate(clique_sets):
-#             for c in cliques:
-#                 clique_terms[vertex] = np.array(c)
-#                 clique_times[vertex] = self.times[i]
-#                 clique_color[vertex] = self.colors[i]
-#                 vertex += 1
         self.vp['terms'] = clique_terms
         self.vp['times'] = clique_times
         self.vp['color'] = clique_color
