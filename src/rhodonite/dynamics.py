@@ -274,6 +274,6 @@ class PhylomemeticGraph(Graph):
             o_j = g.vp['occurrences'][j]
             o.append(o_i * o_j)
             co.append(g.ep['cooccurrences'][(i, j)])
-        density = np.divide(np.square(co), o)
+        density = np.sum(np.divide(np.square(co), o))
         return density
 
