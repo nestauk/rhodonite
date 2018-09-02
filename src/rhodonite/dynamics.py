@@ -38,6 +38,7 @@ def find_links(args):
             links.append(
                    ((direct_parent + start_p, cfi + start_f), 1)
                     )
+            print('aye')
             return links
 
         # keep the first set of jaccard similarities in case no exact match
@@ -61,7 +62,8 @@ def find_links(args):
                 [cf for _ in range(cp_matrix_thresh.shape[0])]
                 )
         j_thresh = jaccard_similarity(cf_matrix, cp_matrix_thresh)
-        parent_clique_indices = np.nonzero(j_thresh)[0]
+        j_max = np.max(j_thresh)
+        parent_clique_indices = np.nonzero(j_thresh == j_max)[0]
         if len(parent_clique_indices) > 0:
             parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
             if any(isinstance(i, tuple) for i in parent_cliques):
