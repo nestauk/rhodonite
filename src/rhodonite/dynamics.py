@@ -19,7 +19,99 @@ import time
 
 logger = logging.getLogger(__name__)
 
+def label_emergence(g):
+    """label_emergence
+    Creates a property map that identifies whether a vertex is categorised as
+    ephemeral, emerging, steady, or declining.
+
+    The categories are represented as integers with the following mapping:
+        {'ephemeral': 0,
+         'emerging': 1,
+         'steady': 2,
+         'declining': 3}
+         
+    Args:
+        g (:obj:`Graph`): A graph.
+
+    Returns:
+        emergence (:obj:`PropertyMap`): An integer property map that represents
+            the emergence category of each vertex.
+    """
+    emergence = g.new_vertex_property('int')
+    for v in g.vertices():
+        if (v.in_degree() == 0) & (v.out_degree() == 0):
+            # ephemeral
+            emergence[v] = 0
+        elif (v.in_degree() == 0) & (v.out_degree() > 0):
+            # emerging
+            emergence[v] = 1
+        elif (v.in_degree() > 0) & (v.out_degree() == 0):
+            # declining
+            emergence[v] = 3
+        else:
+            # steady
+            emergence[v] = 2
+    return emergence
+
+def label_special_events(g):
+    """label_special_events
+    Creates property maps that identify whether a vertex belongs to the
+    possible categories of "special events": branching or merging.
+    
+    Args:
+        g (:obj:`Graph`): A graph.
+
+    Returns:
+        branching (:obj:`PropertyMap`): A boolean property map that is True
+            where a vertex's out degree is greater than 1.
+        merging (:obj:`PropertyMap`): A boolean property map that is True where
+            a vertex's in degree is greater than 1.
+    """
+    branching = g.new_vertex_property('bool')
+    merging = g.new_vertex_property('bool')
+    for v in g.vertices():
+        if (v.in_degree() < 2) & (v.out_degree() >= 2):
+            # branching
+            branching[v] = True
+            merging[v] = False
+        elif (v.in_degree() >= 2) & (v.out_degree() < 2):
+            # merging
+            branching[v] = False
+            merging[v] = True
+        elif (v.in_degree() >= 2) & (v.out_degree() >= 2):
+            # branching and merging
+            branching[v] = True
+            merging[v] = True
+    return branching, merging
+
 def find_links(args):
+    """find_links
+    Finds the inter-temporal links between a clique at time period and cliques
+    occurring at previous time periods.
+
+    Args:
+        cf (:obj:`iter` of int): The clique for which parents are being
+            identified.
+        cfi (int): The clique index relative to all cliques in the phylomemy.
+        cps (:obj:`iter` of :obj:`iter` of int): The cliques from the
+            immediately previous time period to cf.
+        pp_matrices (:obj:`iter` of :obj:`matrix`): Multi label binarized
+            cliques from all time periods previous to cf.
+        pos (:obj:`iter` of :obj:`iter`): The start and ending positions of all
+            each set of cliques in the previous time periods, relative to all
+            cliques.
+        binarizer (:obj:`MultiLabelBinarizer`): A multi label binarizer fitted
+            to the entire vocabulary across all cliques.
+        delta_0 (int): The threshold Jaccard index value for potential parent
+            cliques.
+        parent_limit (int): The limit for the size of possible combinations
+            of potential parent cliques that will be considered.
+    
+    Returns:
+        links: (:obj: `list`): A list that contains the inter-temporal edges
+            that have been found as well as the corresponding Jaccard indexes.
+            Each element is of the format ((source, target) jaccard_index).
+    """
     cf, cfi, cps, pp_matrices, pos, binarizer, delta_0, parent_limit = args
     
     pos_tmp = pos.copy()
@@ -96,7 +188,7 @@ class PhylomemeticGraph(Graph):
         self.colors = [i / n_periods for i in range(n_periods)]
 
     def prepare(self, cliques_dir, cfinder_path=None,):
-        """prepare
+        """prepare 
         """
         self.clique_sets = []
         for graph, weight, time in zip(self.graphs, self.weights, self.times):
@@ -274,6 +366,6 @@ class PhylomemeticGraph(Graph):
             o_j = g.vp['occurrences'][j]
             o.append(o_i * o_j)
             co.append(g.ep['cooccurrences'][(i, j)])
-        density = np.sum(np.divide(np.square(co), o))
+        density = 1 / card * np.sum(np.divide(np.square(co), o))
         return density
 
