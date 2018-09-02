@@ -38,7 +38,6 @@ def find_links(args):
             links.append(
                    ((direct_parent + start_p, cfi + start_f), 1)
                     )
-            print('aye')
             return links
 
         # keep the first set of jaccard similarities in case no exact match
