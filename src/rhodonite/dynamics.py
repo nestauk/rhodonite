@@ -12,14 +12,154 @@ from multiprocessing import Pool
 from rhodonite.cliques import (find_cliques_cfinder, filter_subsets,
         clique_unions, reverse_index_cliques, load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity
-from rhodonite.utilities import window, flatten, clear_graph
+from rhodonite.utilities import window, flatten, clear_graph, get_aggregate_vp
 
 import time
 
 
 logger = logging.getLogger(__name__)
 
+def label_ages(g):
+    """label_ages
+    Get the ages of each vertex in a graph and put them into
+    a property map. The age is defined as the number of steps between
+    a vertex and its most distant antecedent.
+    
+    Args:
+        g (:obj:`Graph`): A graph.
+        
+    Returns:
+        age_vp (:obj:`PropertyMap(`): A property map containing
+            the age of each vertex.
+    """
+
+    # get all vertices with age 0 in dictionary
+    ages = {}
+    for v in g.vertices():
+        if v.in_degree() == 0:
+            ages[v] = 0
+
+    # find youngest in-neighbour of each node
+    # if it is in the age dict then get the new age by adding the difference
+    # else append back on to the list to try again
+    vertices = list(g.vertices())
+    for v in vertices:
+        if v in ages:
+            continue
+        else:
+            year_v = g.vp['times'][v]
+
+            predecessors = list(v.in_neighbors())
+            years = [g.vp['times'][p] for p in predecessors]
+            min_i = np.argmin(years)
+            min_neighbor = predecessors[min_i]
+            year_neighbor = years[min_i]
+        if min_neighbor in ages:
+            year_parent = ages[min_neighbor]
+            ages[v] = ages[min_neighbor] + (year_v - year_neighbor)
+        else:
+            vertices.append(v)
+
+    age_vp = g.new_vertex_property('int')
+
+    for v in g.vertices():
+        age_vp[v] = ages[v]
+    
+    return age_vp
+
+def label_emergence(g):
+    """label_emergence
+    Creates a property map that identifies whether a vertex is categorised as
+    ephemeral, emerging, steady, or declining.
+
+    The categories are represented as integers with the following mapping:
+        {'ephemeral': 0,
+         'emerging': 1,
+         'steady': 2,
+         'declining': 3}
+         
+    Args:
+        g (:obj:`Graph`): A graph.
+
+    Returns:
+        emergence (:obj:`PropertyMap`): An integer property map that represents
+            the emergence category of each vertex.
+    """
+    emergence = g.new_vertex_property('int')
+    for v in g.vertices():
+        if (v.in_degree() == 0) & (v.out_degree() == 0):
+            # ephemeral
+            emergence[v] = 0
+        elif (v.in_degree() == 0) & (v.out_degree() > 0):
+            # emerging
+            emergence[v] = 1
+        elif (v.in_degree() > 0) & (v.out_degree() == 0):
+            # declining
+            emergence[v] = 3
+        else:
+            # steady
+            emergence[v] = 2
+    return emergence
+
+def label_special_events(g):
+    """label_special_events
+    Creates property maps that identify whether a vertex belongs to the
+    possible categories of "special events": branching or merging.
+    
+    Args:
+        g (:obj:`Graph`): A graph.
+
+    Returns:
+        branching (:obj:`PropertyMap`): A boolean property map that is True
+            where a vertex's out degree is greater than 1.
+        merging (:obj:`PropertyMap`): A boolean property map that is True where
+            a vertex's in degree is greater than 1.
+    """
+    branching = g.new_vertex_property('bool')
+    merging = g.new_vertex_property('bool')
+    for v in g.vertices():
+        if (v.in_degree() < 2) & (v.out_degree() >= 2):
+            # branching
+            branching[v] = True
+            merging[v] = False
+        elif (v.in_degree() >= 2) & (v.out_degree() < 2):
+            # merging
+            branching[v] = False
+            merging[v] = True
+        elif (v.in_degree() >= 2) & (v.out_degree() >= 2):
+            # branching and merging
+            branching[v] = True
+            merging[v] = True
+    return branching, merging
+
 def find_links(args):
+    """find_links
+    Finds the inter-temporal links between a clique at time period and cliques
+    occurring at previous time periods.
+
+    Args:
+        cf (:obj:`iter` of int): The clique for which parents are being
+            identified.
+        cfi (int): The clique index relative to all cliques in the phylomemy.
+        cps (:obj:`iter` of :obj:`iter` of int): The cliques from the
+            immediately previous time period to cf.
+        pp_matrices (:obj:`iter` of :obj:`matrix`): Multi label binarized
+            cliques from all time periods previous to cf.
+        pos (:obj:`iter` of :obj:`iter`): The start and ending positions of all
+            each set of cliques in the previous time periods, relative to all
+            cliques.
+        binarizer (:obj:`MultiLabelBinarizer`): A multi label binarizer fitted
+            to the entire vocabulary across all cliques.
+        delta_0 (int): The threshold Jaccard index value for potential parent
+            cliques.
+        parent_limit (int): The limit for the size of possible combinations
+            of potential parent cliques that will be considered.
+    
+    Returns:
+        links: (:obj: `list`): A list that contains the inter-temporal edges
+            that have been found as well as the corresponding Jaccard indexes.
+            Each element is of the format ((source, target) jaccard_index).
+    """
     cf, cfi, cps, pp_matrices, pos, binarizer, delta_0, parent_limit = args
     
     pos_tmp = pos.copy()
@@ -97,7 +237,7 @@ class PhylomemeticGraph(Graph):
         self.colors = [i / n_periods for i in range(n_periods)]
 
     def prepare(self, cliques_dir, cfinder_path=None,):
-        """prepare
+        """prepare 
         """
         self.clique_sets = []
         for graph, weight, time in zip(self.graphs, self.weights, self.times):
@@ -245,12 +385,22 @@ class PhylomemeticGraph(Graph):
                 clique_terms[vertex] = np.array(c)
                 clique_times[vertex] = self.times[i]
                 clique_color[vertex] = self.colors[i]
-        
+
         self.vp['density'] = clique_densities
         self.vp['terms'] = clique_terms
         self.vp['times'] = clique_times
         self.vp['color'] = clique_color
-        
+
+        years, density_anual_mean = get_aggregate_vp(
+                pg_full, 'density', 'times', agg=np.mean
+                )
+        year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
+        for v in self.vertices():
+            year = self.vp['times'][v]
+            density = self.vp['density'][v]
+            d_mean = year_density_mean_mapping[year]
+            self.vp['density'][v] = density / d_mean 
+
         return self
 
     def calculate_clique_density(self, clique_terms, g):
@@ -275,6 +425,6 @@ class PhylomemeticGraph(Graph):
             o_j = g.vp['occurrences'][j]
             o.append(o_i * o_j)
             co.append(g.ep['cooccurrences'][(i, j)])
-        density = np.sum(np.divide(np.square(co), o))
+        density = 1 / card * np.sum(np.divide(np.square(co), o))
         return density
 

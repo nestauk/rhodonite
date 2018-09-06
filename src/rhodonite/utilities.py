@@ -3,6 +3,59 @@ import numpy as np
 import pathlib
 
 
+def get_aggregate_vp(g, vp, vp_grouper, agg=None):
+    """aggregate_property_map
+    
+    Args:
+        g (:obj:`Graph`): A graph.
+        vp (str): String representing an internal property map
+            of graph, g.
+        vp_grouper (str): String representing name of an internal
+            property map that will be used to group by.
+        agg (:obj:`function`): Function to aggregate by. For
+            example, min, max, sum, numpy.mean, etc.
+    Returns:
+        (:obj:`iter` of float): Aggregated values from x. 
+    """
+    vp_vals = get_vp_values(g, vp)
+    vp_agg = get_vp_values(g, vp_grouper)
+    
+    sid_x = vp_agg.argsort()
+    # Get where the sorted version of base changes groups
+    split_idx = np.flatnonzero(np.diff(vp_agg[sid_x]) > 0) + 1
+    # OR np.unique(base[sidx],return_index=True)[1][1:]
+
+    # Finally sort inp based on the sorted indices and split based on split_idx
+    vp_vals_grouped = np.split(vp_vals[sid_x], split_idx)
+    
+    x = sorted(set(vp_agg))
+    if agg: 
+        y = [agg(vvg) for vvg in vp_vals_grouped]
+    else:
+        y = vp_vals_grouped
+
+    return x, y
+
+def get_vp_values(g, vertex_prop_name):
+    """get_vp_values
+    Retrieves a vertex property from a graph, taking into account any filter.
+    
+    Args:
+        g (:obj:`Graph`): A graph.
+        vertex_prop_name (str): The name of an internal vertex property.
+        
+    Returns:
+        pm (:obj:`PropertyMapArray`): An array of the property map.
+    """
+    mask = g.get_vertex_filter()[0]
+    if mask is not None:
+        mask = np.where(mask.get_array())
+        pm = g.vp[vertex_prop_name].get_array()[mask]
+    else:
+        pm = g.vp[vertex_prop_name].get_array()
+    
+    return pm
+
 def clear_graph(g):
     """clear_graph
     Removes all edges and vertices from the graph.
