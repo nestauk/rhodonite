@@ -393,12 +393,12 @@ class PhylomemeticGraph(Graph):
         years, density_anual_mean = get_aggregate_vp(
                 pg_full, 'density', 'times', agg=np.mean
                 )
-	year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
-	for v in self.vertices():
-	    year = self.vp['times'][v]
-	    density = self.vp['density'][v]
-	    d_mean = year_density_mean_mapping[year]
-	    self.vp['density'][v] = density / d_mean 
+        year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
+        for v in self.vertices():
+            year = self.vp['times'][v]
+            density = self.vp['density'][v]
+            d_mean = year_density_mean_mapping[year]
+            self.vp['density'][v] = density / d_mean 
 
         return self
 
