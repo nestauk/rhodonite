@@ -12,7 +12,7 @@ from multiprocessing import Pool
 from rhodonite.cliques import (find_cliques_cfinder, filter_subsets,
         clique_unions, reverse_index_cliques, load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity
-from rhodonite.utilities import window, flatten, clear_graph
+from rhodonite.utilities import window, flatten, clear_graph, get_aggregate_vp
 
 import time
 
@@ -384,12 +384,22 @@ class PhylomemeticGraph(Graph):
                 clique_terms[vertex] = np.array(c)
                 clique_times[vertex] = self.times[i]
                 clique_color[vertex] = self.colors[i]
-        
+
         self.vp['density'] = clique_densities
         self.vp['terms'] = clique_terms
         self.vp['times'] = clique_times
         self.vp['color'] = clique_color
-        
+
+        years, density_anual_mean = get_aggregate_vp(
+                pg_full, 'density', 'times', agg=np.mean
+                )
+	year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
+	for v in self.vertices():
+	    year = self.vp['times'][v]
+	    density = self.vp['density'][v]
+	    d_mean = year_density_mean_mapping[year]
+	    self.vp['density'][v] = density / d_mean 
+
         return self
 
     def calculate_clique_density(self, clique_terms, g):
