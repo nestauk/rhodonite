@@ -3,6 +3,26 @@ import numpy as np
 import pathlib
 
 
+def get_vp_values(g, vertex_prop_name):
+    """get_vp_values
+    Retrieves a vertex property from a graph, taking into account any filter.
+    
+    Args:
+        g (:obj:`Graph`): A graph.
+        vertex_prop_name (str): The name of an internal vertex property.
+        
+    Returns:
+        pm (:obj:`PropertyMapArray`): An array of the property map.
+    """
+    mask = g.get_vertex_filter()[0]
+    if mask is not None:
+        mask = np.where(mask.get_array())
+        pm = g.vp[vertex_prop_name].get_array()[mask]
+    else:
+        pm = g.vp[vertex_prop_name].get_array()
+    
+    return pm
+
 def clear_graph(g):
     """clear_graph
     Removes all edges and vertices from the graph.
