@@ -177,28 +177,17 @@ def flatten(list_of_iters):
     flat = [item for iter in list_of_iters for item in iter]
     return flat
 
-def seq2cooccurrence(seq):
-    """seq2cooccurrence
-    Converts an iterable sequence to a list of the set of tuples that 
-    represent all the possible cooccurrences.
-
-    Args:
-        seq (:obj:`iter`): List of elements
-        dedupe(
-
-    Returns:
-        cooccurrences (:obj:`list` of :obj:`tuple`): List of tuples. Each
-            tuple is sorted.
-
-    Examples:
-        >>> doc = ['me', 'myself', 'irene']
-
-        >>> sorted(seq2cooccurrence(doc))
-        [('irene', 'me'), ('irene', 'myself'), ('me', 'myself')]
-    """
-    combos = list(itertools.combinations(set(seq), r=2))
-    cooccurrences = list(set([tuple(sorted(c)) for c in combos]))
-    return cooccurrences
+def sequence_item_types(sequence):
+    """sequence_item_types"""
+    if all(isinstance(item, int) for item in sequence):
+        item_types = 'int'
+    elif all(isinstance(item, str) for item in sequence):
+        item_types = 'string'
+    elif all(isinstance(item, float) for item in sequence):
+        item_types = 'float'
+    else:
+        item_types = 'object'
+    return item_types
 
 def window(seq, n=3):
     """window
