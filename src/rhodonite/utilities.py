@@ -47,10 +47,15 @@ def get_vp_values(g, vertex_prop_name):
     Returns:
         pm (:obj:`PropertyMapArray`): An array of the property map.
     """
+    p_type = g.vp[vertex_prop_name].value_type()
     mask = g.get_vertex_filter()[0]
     if mask is not None:
         mask = np.where(mask.get_array())
-        pm = g.vp[vertex_prop_name].get_array()[mask]
+        if p_type != 'string':
+            pm = g.vp[vertex_prop_name].get_array()[mask]
+        else:
+            pm = [g.vp[vertex_prop_name][v]
+                    for m, v in zip(mask, g.vertices()) if m == True]
     else:
         pm = g.vp[vertex_prop_name].get_array()
     
