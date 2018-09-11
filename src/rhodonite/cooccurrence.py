@@ -35,6 +35,20 @@ class CooccurrenceGraph(Graph):
         super().__init__(directed=False, *args, **kwargs)
 
     def from_matrix(self, matrix, dictionary=None):
+        """from matrix
+        Constructs a coocurrence network from a cooccurrence matrix with N
+        columns and rows, where N is the total number of unique items. The
+        value of the cooccurrence matrix is zero at all points other than
+        those where a cooccurrence occurs. The value at point (i, j) is the
+        number of cooccurrences between the items i and j.
+
+        Args:
+            matrix:
+            dictionary:
+
+        Returns:
+            self:
+        """
         pass
 
     def from_sequences(self, sequences, window_size=2, dictionary=None):
