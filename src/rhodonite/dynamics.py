@@ -236,6 +236,129 @@ class PhylomemeticGraph(Graph):
         n_periods = len(times)
         self.colors = [i / n_periods for i in range(n_periods)]
 
+    def from_communities(self, community_sets, labels=None,
+            min_clique_size=None, workers=4, delta_0=0.3, parent_limit=2):
+        """from_communities
+        Builds a phylomemetic graph from a set of communities.
+
+        Args:
+            community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`):
+            labels (:obj:`iter`):
+            min_clique_size (int):
+            workers (int):
+            delta_0 (float):
+            parent_limit (int):
+
+        Returns:
+            self
+        """
+        community_sets_filt = []
+        community_sets_lengths = []
+        for communities in community_sets:
+            communities_filt = self.filter_communities(
+                    communities, min_clique_size
+                    )
+            community_sets_filt.append(communities_filt)
+            community_sets_lengths.append(len(community_sets_filt))
+
+        community_sets_pos =[]
+        for length, count in zip(
+                community_sets_lengths, np.cumsum(community_sets_lengths)):
+            community_sets_pos.append((count - length, count))
+        
+        n_communities = sum(community_sets_lengths)
+
+        vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
+        len_vocab = len(vocab_all)
+        binarizer_all = MultiLabelBinarizer(
+                classes=vocab_all,
+                sparse_output=True)
+        binarizer_all.fit(range(0, len_vocab))
+
+        binarized_community_sets = [binarizer_all.transform(c)
+                for c in community_sets]
+        
+        phylomemetic_links = []
+        # find direct parents
+        for i, (communities_p, communities_f) in enumerate(window(community_sets, 2)):
+            n_cf = len(communities_f)
+            cp_matrix = binarizer_all.transform(communities_p)
+
+            possible_parent_matrices = list(
+                    reversed(binarized_community_sets[:i+1])
+                    )
+            # include positions of the current
+            positions = community_sets_pos[:i+2]
+
+            with Pool(workers) as pool:
+                phylomemetic_links.append(
+                        pool.map(
+                            find_links,
+                            zip(
+                                cliques_f,
+                                range(0, len(communities_f)),
+                                repeat(communities_p, n_cf),
+                                repeat(possible_parent_matrices, n_cf),
+                                repeat(positions, n_cf),
+                                repeat(binarizer_all, n_cf),
+                                repeat(delta_0, n_cf),
+                                repeat(parent_limit, n_cf),
+                                )
+                            )
+                        )
+                    
+                pool.close()
+                pool.join()
+                                            
+        if len(list(self.vertices())) == 0:
+            self.add_vertex(n_communities)
+
+        link_strengths = self.new_edge_property('float')
+        for pl in phylomemetic_links:
+            pl = flatten([p for p in pl if p is not None])
+            pl_edges = [p[0] for p in pl]
+            pl_weights = [p[1] for p in pl]
+            self.add_edge_list(set(pl_edges))
+            for e, w in zip(pl_edges, pl_weights):
+                link_strengths[self.edge(e[0], e[1])] = w
+
+        self.ep['link_strength'] = link_strengths
+
+        community_times = self.new_vertex_property('int')
+        community_terms = self.new_vertex_property('vector<int>')
+        community_color = self.new_vertex_property('float')
+#         community_densities = self.new_vertex_property('float')
+
+        for i, ((start, end), communities) in enumerate(
+                zip(community_sets_pos, community_sets)):
+            vertices = range(start, end)
+            for vertex, c in zip(vertices, communities):
+#                 clique_densities[vertex] = self.calculate_clique_density(
+#                         c, self.graphs[i])
+                community_terms[vertex] = np.array(c)
+                community_times[vertex] = self.times[i]
+                community_color[vertex] = self.colors[i]
+
+#         self.vp['density'] = community_densities
+        self.vp['terms'] = community_terms
+        self.vp['times'] = community_times
+        self.vp['color'] = community_color
+
+#         years, density_anual_mean = get_aggregate_vp(
+#                 pg_full, 'density', 'times', agg=np.mean
+#                 )
+#         year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
+#         for v in self.vertices():
+#             year = self.vp['times'][v]
+#             density = self.vp['density'][v]
+#             d_mean = year_density_mean_mapping[year]
+#             self.vp['density'][v] = density / d_mean 
+
+        return self
+
+
+        pass
+
     def prepare(self, cliques_dir, cfinder_path=None,):
         """prepare 
         """
@@ -274,10 +397,10 @@ class PhylomemeticGraph(Graph):
 
         return self
     
-    def filter_cliques(self, cliques_set, min_clique_size):
-        """filter_cliques
-        Returns the cliques in a series that are larger than the minimum clique
-        size.
+    def filter_communities(self, cliques_set, min_clique_size):
+        """filter_communities
+        Returns the communities in a series that are larger than the minimum
+        community size.
 
         Args:
             cliques_set (:obj:`iter` of :obj:`iter`): Series of iterables

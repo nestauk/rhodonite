@@ -34,7 +34,7 @@ class CooccurrenceGraph(Graph):
         """
         super().__init__(directed=False, *args, **kwargs)
 
-    def from_matrix(self, matrix, dictionary=None):
+    def from_matrix(self, matrix, dictionary):
         """from matrix
         Constructs a coocurrence network from a cooccurrence matrix with N
         columns and rows, where N is the total number of unique items. The
@@ -51,7 +51,7 @@ class CooccurrenceGraph(Graph):
         """
         pass
 
-    def from_sequences(self, sequences, window_size=2, dictionary=None):
+    def from_sequences(self, sequences, dictionary, window_size=2):
         """from_sequences
         Constructs a cooccurrence network from a series of sequences (an
         iterable of iterables), for example, a corpus of tokenized documents.
@@ -59,48 +59,36 @@ class CooccurrenceGraph(Graph):
         used to identify cooccurrences between neigbouring elements in the
         nested sequences, or cooccurrences are counted between all elements in
         each sequence.
-        """
-        sequences_flat = flatten(sequences)
-        sequence_items = set(sequences_flat)
-        self.add_vertex(len(sequence_items))
 
-        item_types = sequence_item_types(sequence_items) 
-        items_vp = self.new_vertex_property(item_types)
+        Args:
+            sequences (:obj:`iter` of :obj:`iter` :obj:`iter`):
+            window_size (int):
+            dictionary (dict):
+
+        Returns:
+            self
+        """
+        num_items = len(dictionary.keys())
+        sequences_flat = flatten(sequences)
+        self.add_vertex(num_items)
         
-        if dictionary is not None:
-            dict_item_types = sequence_item_types(dictionary.keys())
-            item_values_vp = self.new_vertex_property(dict_item_types)
+        dict_item_types = sequence_item_types(dictionary.values())
+        items_vp = self.new_vertex_property(dict_item_types)
         
-        item_vertex_mapping = {}
-        for i, item in enumerate(sequence_items):
+        for i, item in dictionary.items():
             items_vp[i] = item
-            item_vertex_mapping[item] = i
-            if dictionary is not None:
-                item_values_vp[i] = dictionary[item]
         
         self.vp['item'] = items_vp
-        if dictionary is not None:
-            self.vp['item_value'] = item_values_vp
 
-        occurrences_vp = self.occurrences(sequences, item_vertex_mapping)
+        occurrences_vp = self.occurrences(sequences, dictionary)
         self.vertex_properties['occurrence'] = occurrences_vp
-        
+
         length_shortest_seq = min([len(s) for s in sequences])
-        if window_size > length_shortest_seq:
-            warnings.warn(('Parameter window_size is larger than the shortest'
-                ' sequence length. Cooccurrences will not be counted from' 
-                ' sequences with lengths smaller than the window size.'))
-        
-        distances = defaultdict(list)
-        cooccurrences = defaultdict(int)
+ 
+        cooccurrences, distances = self.seqs2cooccurrences(
+                sequences, window_size)
 
-        for co_pair, dist in self.sequences2cooccurrences(sequences, window_size):
-            source = item_vertex_mapping[co_pair[0]]
-            target = item_vertex_mapping[co_pair[1]]
-            distances[(source, target)].append(dist)
-            cooccurrences[(source, target)] += 1
-
-        self.add_edge_list(cooccurrences.keys())
+        self.add_edge_list(set(cooccurrences.keys()))
 
         distances_ep = self.new_edge_property('vector<int>')
         cooccurrences_ep = self.new_edge_property('int')
@@ -112,10 +100,18 @@ class CooccurrenceGraph(Graph):
         self.ep['cooccurrence'] = cooccurrences_ep
         self.ep['distance'] = distances_ep
 
+        isolated_vp = self.new_vertex_property('bool')
+        for v in self.vertices():
+            if v.out_degree() == 0:
+                isolated_vp[v] = True
+            else:
+                isolated_vp[v] = False
+        self.vp['isolated'] = isolated_vp
+
         return self
 
-    def sequences2cooccurrences(self, sequences, window_size):
-        """sequences2cooccurrences
+    def seqs2cooccurrences(self, sequences, window_size):
+        """seqs2cooccurrences
         From an iterable of sequences, this function generates cooccurrence
         pairs, and the distances between the pair elements, as they are found
         in the sequences.
@@ -132,8 +128,12 @@ class CooccurrenceGraph(Graph):
             co_pair (:obj:`tuple`): A pair of cooccurring elements.
             dist (int): The distance between them in the original sequence.
         """
+        distances = defaultdict(list)
+        cooccurrences = defaultdict(int)
         for seq in sequences:
             if window_size < 2:
+                n = len(seq)
+            elif len(seq) < window_size:
                 n = len(seq)
             else:
                 n = window_size
@@ -146,7 +146,10 @@ class CooccurrenceGraph(Graph):
             co_pair_dists = [(sp, sd) for sp, sd in zip(seq_pairs, seq_dists)
                     if sp[0] != sp[1]]
             for pair, dist in co_pair_dists:
-                yield pair, dist
+                pair = tuple(sorted(pair))
+                distances[pair].append(dist)
+                cooccurrences[pair] += 1
+        return cooccurrences, distances
      
     def cooccurrence_pairs(self, seq):
         """seq2cooccurrence
@@ -171,13 +174,12 @@ class CooccurrenceGraph(Graph):
         cooccurrences = set([tuple(sorted(c)) for c in combos])
         return cooccurrences
 
-    def occurrences(self, sequences, item_vertex_mapping):
+    def occurrences(self, sequences, dictionary):
         """calculate_occurrences
         Calculates the number of times each element in the sequences occurs
         and puts them in to an array ordered by the elements' vertex IDs.
 
         Args:
-            g (:obj:`Graph`):
             sequences (:obj:`iter` of :obj:`iter`):
 
         Returns
@@ -185,7 +187,10 @@ class CooccurrenceGraph(Graph):
         """
         counts = Counter(flatten(sequences))
         o = self.new_vertex_property('int')
-        for k, v in counts.items():
-            o[item_vertex_mapping[k]] = v
+        for k in dictionary.keys():
+            if k in counts:
+                o[k] = counts[k]
+            else:
+                o[k] = 0
         return o
 
