@@ -51,7 +51,8 @@ class CooccurrenceGraph(Graph):
         """
         pass
 
-    def from_sequences(self, sequences, dictionary, window_size=2):
+    def from_sequences(self, sequences, dictionary, window_size=2,
+            distance_agg=None):
         """from_sequences
         Constructs a cooccurrence network from a series of sequences (an
         iterable of iterables), for example, a corpus of tokenized documents.
@@ -62,8 +63,9 @@ class CooccurrenceGraph(Graph):
 
         Args:
             sequences (:obj:`iter` of :obj:`iter` :obj:`iter`):
-            window_size (int):
             dictionary (dict):
+            window_size (int):
+            distance_agg (function): 
 
         Returns:
             self
@@ -89,13 +91,18 @@ class CooccurrenceGraph(Graph):
                 sequences, window_size)
 
         self.add_edge_list(set(cooccurrences.keys()))
-
-        distances_ep = self.new_edge_property('vector<int>')
+        if distance_agg is not None:
+            distances_ep = self.new_edge_property('float')
+        else:
+            distances_ep = self.new_edge_property('vector<int>')
         cooccurrences_ep = self.new_edge_property('int')
 
         for co_pair, cooccurrence in cooccurrences.items():
             cooccurrences_ep[co_pair] = cooccurrences[co_pair]
-            distances_ep[co_pair] = numpy.array(distances[co_pair])
+            if distance_agg is not None:
+                distances_ep[co_pair] = distance_agg(distances[co_pair])
+            else:
+                distances_ep[co_pair] = numpy.array(distances[co_pair])
         
         self.ep['cooccurrence'] = cooccurrences_ep
         self.ep['distance'] = distances_ep
@@ -152,7 +159,7 @@ class CooccurrenceGraph(Graph):
         return cooccurrences, distances
      
     def cooccurrence_pairs(self, seq):
-        """seq2cooccurrence
+        """coocurrence_pairs
         Converts an iterable sequence to a list of the set of tuples that 
         represent all the possible cooccurrences.
 

@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import pandas
 import os
 
 from collections import defaultdict
@@ -215,29 +216,14 @@ def find_links(args):
 
 class PhylomemeticGraph(Graph):
     
-    def __init__(self, graphs, weights, dictionary, times,
-            max_weight=None, min_weight=None, **kwargs):
+    def __init__(self, *args, **kwargs):
         """PhylomemeticGraph
         """
-        super().__init__(**kwargs)
-        self.graphs = graphs
-        if type(weights) == str:
-            self.weights = [g.edge_properties[weights] for g in self.graphs]
-        else:
-            self.weights = weights
-        self.dictionary = dictionary
-        self.times = times
-        self.len_vocab = len(dictionary.token2id)
-        
-        self.max_weight = max_weight
-        self.min_weight = min_weight
-
-        self.n_cooccurrence_vertices = len(dictionary.keys())
-        n_periods = len(times)
-        self.colors = [i / n_periods for i in range(n_periods)]
+        super().__init__(*args, **kwargs)
 
     def from_communities(self, community_sets, labels=None,
-            min_clique_size=None, workers=4, delta_0=0.3, parent_limit=2):
+            min_clique_size=None, workers=4, delta_0=0.3, parent_limit=2,
+            color=False):
         """from_communities
         Builds a phylomemetic graph from a set of communities.
 
@@ -252,6 +238,7 @@ class PhylomemeticGraph(Graph):
         Returns:
             self
         """
+
         community_sets_filt = []
         community_sets_lengths = []
         for communities in community_sets:
@@ -259,13 +246,12 @@ class PhylomemeticGraph(Graph):
                     communities, min_clique_size
                     )
             community_sets_filt.append(communities_filt)
-            community_sets_lengths.append(len(community_sets_filt))
+            community_sets_lengths.append(len(communities))
 
-        community_sets_pos =[]
+        community_sets_pos = []
         for length, count in zip(
                 community_sets_lengths, np.cumsum(community_sets_lengths)):
             community_sets_pos.append((count - length, count))
-        
         n_communities = sum(community_sets_lengths)
 
         vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
@@ -295,7 +281,7 @@ class PhylomemeticGraph(Graph):
                         pool.map(
                             find_links,
                             zip(
-                                cliques_f,
+                                communities_f,
                                 range(0, len(communities_f)),
                                 repeat(communities_p, n_cf),
                                 repeat(possible_parent_matrices, n_cf),
@@ -323,80 +309,30 @@ class PhylomemeticGraph(Graph):
                 link_strengths[self.edge(e[0], e[1])] = w
 
         self.ep['link_strength'] = link_strengths
+        
+        if color:
+            colors = [i / len(labels) for i in range(0, len(labels))]
+            community_color = self.new_vertex_property('float')
 
-        community_times = self.new_vertex_property('int')
-        community_terms = self.new_vertex_property('vector<int>')
-        community_color = self.new_vertex_property('float')
-#         community_densities = self.new_vertex_property('float')
+        community_labels = self.new_vertex_property('int')
+        community_items = self.new_vertex_property('vector<int>')
 
         for i, ((start, end), communities) in enumerate(
                 zip(community_sets_pos, community_sets)):
             vertices = range(start, end)
             for vertex, c in zip(vertices, communities):
-#                 clique_densities[vertex] = self.calculate_clique_density(
-#                         c, self.graphs[i])
-                community_terms[vertex] = np.array(c)
-                community_times[vertex] = self.times[i]
-                community_color[vertex] = self.colors[i]
+                community_items[vertex] = np.array(c)
+                community_labels[vertex] = labels[i]
+                if color:
+                    community_color[vertex] = colors[i]
 
-#         self.vp['density'] = community_densities
-        self.vp['terms'] = community_terms
-        self.vp['times'] = community_times
-        self.vp['color'] = community_color
-
-#         years, density_anual_mean = get_aggregate_vp(
-#                 pg_full, 'density', 'times', agg=np.mean
-#                 )
-#         year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
-#         for v in self.vertices():
-#             year = self.vp['times'][v]
-#             density = self.vp['density'][v]
-#             d_mean = year_density_mean_mapping[year]
-#             self.vp['density'][v] = density / d_mean 
+        self.vp['item'] = community_items
+        self.vp['label'] = community_labels
+        if color:
+            self.vp['color'] = community_color
 
         return self
 
-
-        pass
-
-    def prepare(self, cliques_dir, cfinder_path=None,):
-        """prepare 
-        """
-        self.clique_sets = []
-        for graph, weight, time in zip(self.graphs, self.weights, self.times):
-            if cfinder_path is not None:
-                # create a subgraph based on the min and max weight thresholds
-                if (self.min_weight is not None) & (self.max_weight is None):
-                    thresh_graph = GraphView(graph,
-                        efilt=lambda e: self.min_weight <= weight[e])
-                elif (self.max_weight is not None) & (self.min_weight is None):
-                    thresh_graph = GraphView(graph,
-                        efilt=lambda e: weight[e] <= self.max_weight)
-                elif (self.max_weight is not None) & (self.min_weight is not None):
-                    thresh_graph = GraphView(graph,
-                        efilt=lambda e: self.min_weight <= weight[e] <= self.max_weight)
-                else:
-                    thresh_graph = graph
-                
-                # only vertices with more than one edge can be part of a clique
-                thresh_graph = GraphView(thresh_graph, vfilt=lambda v: v.out_degree() > 1)
-
-                # find all cliques in the subgraph
-                output_dir = os.path.join(cliques_dir, str(time))
-                cliques = find_cliques_cfinder(thresh_graph, cfinder_path,
-                        output_dir, delete_outputs=False)
-            else:
-                cliques = load_cliques_cfinder(os.path.join(cliques_dir, str(time), 'cliques'))
-
-            cliques_harmonised = []
-            for c in cliques:
-                ch = [graph.vp.vertex_token_idxs[v] for v in c]
-                cliques_harmonised.append(ch)
-
-            self.clique_sets.append(cliques_harmonised)
-
-        return self
-    
     def filter_communities(self, cliques_set, min_clique_size):
         """filter_communities
         Returns the communities in a series that are larger than the minimum
@@ -414,140 +350,56 @@ class PhylomemeticGraph(Graph):
         csf = [c for c in cliques_set if len(c) >= min_clique_size]
         return csf
 
-    def build(self, workers=4, min_clique_size=3, delta_0=0.5, parent_limit=3):
-        """build
-        Creates the links in the phylomemetic network between cliques at time T
-        and time T'.
+def community_density(community, g):
+    """community_density
+    Calculate the density of a clique based on the number of occurrences
+    and coocurrences of the terms within it. Based on Callon et al. 1991.
 
-        Args:
-            workers (int):
-            min_clique_size (int):
-            log_every
-        """
-        
-        clique_sets = []
-        clique_sets_lengths = []
-        for clique_set in self.clique_sets:
-            clique_set_filt = self.filter_cliques(clique_set, min_clique_size)
-            clique_sets.append(clique_set_filt)
-            clique_sets_lengths.append(len(clique_set_filt))
-        
-        clique_sets_pos =[]
-        for length, count in zip(
-                clique_sets_lengths, np.cumsum(clique_sets_lengths)):
-            clique_sets_pos.append((count - length, count))
-        
-        total_n_cliques = sum(clique_sets_lengths)
-        
-        vocab_all = list(set(flatten([flatten(c) for c in clique_sets])))
-        len_vocab = len(vocab_all)
-        binarizer_all = MultiLabelBinarizer(
-                classes=vocab_all,
-                sparse_output=True)
-        binarizer_all.fit(range(0, len_vocab))
+    Args:
+        community (:obj:`iter` of int): A set of terms that comprise
+            a single clique.
+        g (:obj:`Graph`): The coocurrence graph from which the clique
+            originated
+    Returns:
+        density (float): The density of the clique.
+    """
+    card = len(community)
+    co = []
+    o = []
+    for i, j in combinations(community, 2):
+        o_i = g.vp['occurrences'][i]
+        o_j = g.vp['occurrences'][j]
+        o.append(o_i * o_j)
+        co.append(g.ep['cooccurrences'][(i, j)])
+    density = 1 / card * np.sum(np.divide(np.square(co), o))
+    return density
 
-        binarized_clique_sets = [binarizer_all.transform(c)
-                for c in clique_sets]
-        
-        phylomemetic_links = []
-        # find direct parents
-        for i, (cliques_p, cliques_f) in enumerate(window(clique_sets, 2)):
-            n_cf = len(cliques_f)
-            cp_matrix = binarizer_all.transform(cliques_p)
+def label_density(g, cooccurrence_graphs, norm=None):
+    community_densities = g.new_vertex_property('float')
 
-            possible_parent_matrices = list(
-                    reversed(binarized_clique_sets[:i+1])
-                    )
-            # include positions of the current
-            positions = clique_sets_pos[:i+2]
+    g_df = vertices_to_dataframe(g)
+    time_steps = g_df['time'].unique()
+    groupby_labels = g_df.groupby('time')
 
-            with Pool(workers) as pool:
-                phylomemetic_links.append(
-                        pool.map(
-                            find_links,
-                            zip(
-                                cliques_f,
-                                range(0, len(cliques_f)),
-                                repeat(cliques_p, n_cf),
-                                repeat(possible_parent_matrices, n_cf),
-                                repeat(positions, n_cf),
-                                repeat(binarizer_all, n_cf),
-                                repeat(delta_0, n_cf),
-                                repeat(parent_limit, n_cf),
-                                )
-                            )
-                        )
-                    
-                pool.close()
-                pool.join()
-                                            
-        if len(list(self.vertices())) == 0:
-            self.add_vertex(total_n_cliques)
+    for i, group in groupby_labels:
+        # go through each community, calculate density and add to a dict
+        # then map?
+    
 
-        jaccard_weights = self.new_edge_property('float')
-        for pl in phylomemetic_links:
-            pl = flatten([p for p in pl if p is not None])
-            pl_edges = [p[0] for p in pl]
-            pl_weights = [p[1] for p in pl]
-            self.add_edge_list(set(pl_edges))
-            for e, w in zip(pl_edges, pl_weights):
-                jaccard_weights[self.edge(e[0], e[1])] = w
+    for i, ((start, end), communities) in enumerate(
+            zip(community_sets_pos, community_sets)):
+        vertices = range(start, end)
+        for v, c in zip(vertices, communities):
+            community_densities[v] = community_density(c, graphs[i])
 
-        self.ep['jaccard_weights'] = jaccard_weights
 
-        clique_times = self.new_vertex_property('int')
-        clique_terms = self.new_vertex_property('vector<int>')
-        clique_color = self.new_vertex_property('float')
-        clique_densities = self.new_vertex_property('float')
-       
-        for i, ((start, end), cliques) in enumerate(zip(clique_sets_pos, clique_sets)):
-            vertices = range(start, end)
-            for vertex, c in zip(vertices, cliques):
-                clique_densities[vertex] = self.calculate_clique_density(
-                        c, self.graphs[i])
-                clique_terms[vertex] = np.array(c)
-                clique_times[vertex] = self.times[i]
-                clique_color[vertex] = self.colors[i]
-
-        self.vp['density'] = clique_densities
-        self.vp['terms'] = clique_terms
-        self.vp['times'] = clique_times
-        self.vp['color'] = clique_color
-
-        years, density_anual_mean = get_aggregate_vp(
-                pg_full, 'density', 'times', agg=np.mean
-                )
-        year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
-        for v in self.vertices():
-            year = self.vp['times'][v]
-            density = self.vp['density'][v]
-            d_mean = year_density_mean_mapping[year]
-            self.vp['density'][v] = density / d_mean 
-
-        return self
-
-    def calculate_clique_density(self, clique_terms, g):
-        """calculate_clique_density
-        Calculate the density of a clique based on the number of occurrences
-        and coocurrences of the terms within it. Based on Callon et al. 1991.
-
-        Args:
-            clique_terms (:obj:`iter` of int): A set of terms that comprise
-                a single clique.
-            g (:obj:`Graph`): The coocurrence graph from which the clique
-                originated
-        Returns:
-            density (float): The density of the clique.
-        """
-        clique_terms = [g.tokenidx2vertex[i] for i in clique_terms]
-        card = len(clique_terms)
-        co = []
-        o = []
-        for i, j in combinations(clique_terms, 2):
-            o_i = g.vp['occurrences'][i]
-            o_j = g.vp['occurrences'][j]
-            o.append(o_i * o_j)
-            co.append(g.ep['cooccurrences'][(i, j)])
-        density = 1 / card * np.sum(np.divide(np.square(co), o))
-        return density
-
+    years, density_anual_mean = get_aggregate_vp(
+            pg_full, 'density', 'times', agg=np.mean
+            )
+    year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
+    for v in self.vertices():
+        year = self.vp['times'][v]
+        density = self.vp['density'][v]
+        d_mean = year_density_mean_mapping[year]
+        self.vp['density'][v] = density / d_mean 
+    self.vp['density'] = community_densities
