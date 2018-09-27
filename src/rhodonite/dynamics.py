@@ -218,6 +218,9 @@ class PhylomemeticGraph(Graph):
     
     def __init__(self, *args, **kwargs):
         """PhylomemeticGraph
+
+        A graph that links longtitudinal sets of communities using a
+        "phylomemetic" algorithm (Chavalarias and Cointet 2013).
         """
         super().__init__(*args, **kwargs)
 
@@ -374,7 +377,7 @@ def community_density(community, g):
     density = 1 / card * np.sum(np.divide(np.square(co), o))
     return density
 
-def label_density(g, cooccurrence_graphs, norm=None):
+def label_density(g, weights, norm=None):
     community_densities = g.new_vertex_property('float')
 
     g_df = vertices_to_dataframe(g)
@@ -382,6 +385,9 @@ def label_density(g, cooccurrence_graphs, norm=None):
     groupby_labels = g_df.groupby('time')
 
     for i, group in groupby_labels:
+        weight = weights[i]
+
+
         # go through each community, calculate density and add to a dict
         # then map?
     
