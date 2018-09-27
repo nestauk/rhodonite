@@ -1,7 +1,7 @@
 import pandas
 
 
-def vertices_to_dataframes(g, keys=None):
+def vertices_to_dataframe(g, keys=None):
     """vertices_to_dataframe
     Transforms a graph's vertices and their properties into a tabular format.
 
