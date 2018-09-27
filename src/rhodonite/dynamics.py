@@ -14,6 +14,7 @@ from rhodonite.cliques import (find_cliques_cfinder, filter_subsets,
         clique_unions, reverse_index_cliques, load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity
 from rhodonite.utilities import window, flatten, clear_graph, get_aggregate_vp
+from rhodonite.tabular import vertices_to_dataframe
 
 import time
 
@@ -370,42 +371,42 @@ def community_density(community, g):
     co = []
     o = []
     for i, j in combinations(community, 2):
-        o_i = g.vp['occurrences'][i]
-        o_j = g.vp['occurrences'][j]
+        o_i = g.vp['occurrence'][i]
+        o_j = g.vp['occurrence'][j]
         o.append(o_i * o_j)
-        co.append(g.ep['cooccurrences'][(i, j)])
+        co.append(g.ep['cooccurrence'][(i, j)])
     density = 1 / card * np.sum(np.divide(np.square(co), o))
     return density
 
-def label_density(g, weights, norm=None):
+def label_density(g, cooccurrence_graphs, norm=None):
+    """label_density
+    Creates a property map with the density of each vertex based on the items
+    contained within the community it represents.
+    Requires a cooccurrence graphs.
+
+    Args:
+        g (:obj:`PhylomemeticGraph`): A phylomemetic graph.
+        cooccurrence_graphs (:obj:`iter` of :obj:`CooccurrenceGraph`): A list
+            of cooccurrence graphs for each time period.
+        norm (function): A normalisation function.
+
+    Returns:
+        community_densities (:obj:`PropertyMap`): A property map containing the
+            densities of the phylomemetic graph vertices.
+    """
     community_densities = g.new_vertex_property('float')
 
     g_df = vertices_to_dataframe(g)
-    time_steps = g_df['time'].unique()
-    groupby_labels = g_df.groupby('time')
+    time_steps = sorted(g_df['label'].unique())
+    label_groups = g_df.groupby('label')
 
-    for i, group in groupby_labels:
-        weight = weights[i]
+    for (_, group), co_graph in zip(label_groups, cooccurrence_graphs):
+        densities = [community_density(c, co_graph) for c in group['item']]
+        if norm is not None:
+            densities = np.array(densities) / norm(densities)
+        for v, d in zip(group['vertex'], densities):
+            community_densities[v] = d
 
-
-        # go through each community, calculate density and add to a dict
-        # then map?
+    return community_densities
     
 
-    for i, ((start, end), communities) in enumerate(
-            zip(community_sets_pos, community_sets)):
-        vertices = range(start, end)
-        for v, c in zip(vertices, communities):
-            community_densities[v] = community_density(c, graphs[i])
-
-
-    years, density_anual_mean = get_aggregate_vp(
-            pg_full, 'density', 'times', agg=np.mean
-            )
-    year_density_mean_mapping = {k: v for k, v in zip(years, density_anual_mean)}
-    for v in self.vertices():
-        year = self.vp['times'][v]
-        density = self.vp['density'][v]
-        d_mean = year_density_mean_mapping[year]
-        self.vp['density'][v] = density / d_mean 
-    self.vp['density'] = community_densities
