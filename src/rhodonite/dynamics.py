@@ -19,8 +19,6 @@ from rhodonite.tabular import vertices_to_dataframe
 import time
 
 
-logger = logging.getLogger(__name__)
-
 def label_ages(g):
     """label_ages
     Get the ages of each vertex in a graph and put them into
@@ -68,6 +66,61 @@ def label_ages(g):
         age_vp[v] = ages[v]
     
     return age_vp
+
+def community_density(community, g):
+    """community_density
+    Calculate the density of a clique based on the number of occurrences
+    and coocurrences of the terms within it. Based on Callon et al. 1991.
+
+    Args:
+        community (:obj:`iter` of int): A set of terms that comprise
+            a single clique.
+        g (:obj:`Graph`): The coocurrence graph from which the clique
+            originated
+    Returns:
+        density (float): The density of the clique.
+    """
+    card = len(community)
+    co = []
+    o = []
+    for i, j in combinations(community, 2):
+        o_i = g.vp['occurrence'][i]
+        o_j = g.vp['occurrence'][j]
+        o.append(o_i * o_j)
+        co.append(g.ep['cooccurrence'][(i, j)])
+    density = 1 / card * np.sum(np.divide(np.square(co), o))
+    return density
+
+def label_density(g, cooccurrence_graphs, norm=None):
+    """label_density
+    Creates a property map with the density of each vertex based on the items
+    contained within the community it represents.
+    Requires a cooccurrence graphs.
+
+    Args:
+        g (:obj:`PhylomemeticGraph`): A phylomemetic graph.
+        cooccurrence_graphs (:obj:`iter` of :obj:`CooccurrenceGraph`): A list
+            of cooccurrence graphs for each time period.
+        norm (function): A normalisation function.
+
+    Returns:
+        community_densities (:obj:`PropertyMap`): A property map containing the
+            densities of the phylomemetic graph vertices.
+    """
+    community_densities = g.new_vertex_property('float')
+
+    g_df = vertices_to_dataframe(g)
+    time_steps = sorted(g_df['label'].unique())
+    label_groups = g_df.groupby('label')
+
+    for (_, group), co_graph in zip(label_groups, cooccurrence_graphs):
+        densities = [community_density(c, co_graph) for c in group['item']]
+        if norm is not None:
+            densities = np.array(densities) / norm(densities)
+        for v, d in zip(group['vertex'], densities):
+            community_densities[v] = d
+
+    return community_densities
 
 def label_emergence(g):
     """label_emergence
@@ -215,6 +268,7 @@ def find_links(args):
                 links.append(((pc + start_p, cfi + start_f), j))
             return links
 
+
 class PhylomemeticGraph(Graph):
     
     def __init__(self, *args, **kwargs):
@@ -353,60 +407,4 @@ class PhylomemeticGraph(Graph):
         """
         csf = [c for c in cliques_set if len(c) >= min_clique_size]
         return csf
-
-def community_density(community, g):
-    """community_density
-    Calculate the density of a clique based on the number of occurrences
-    and coocurrences of the terms within it. Based on Callon et al. 1991.
-
-    Args:
-        community (:obj:`iter` of int): A set of terms that comprise
-            a single clique.
-        g (:obj:`Graph`): The coocurrence graph from which the clique
-            originated
-    Returns:
-        density (float): The density of the clique.
-    """
-    card = len(community)
-    co = []
-    o = []
-    for i, j in combinations(community, 2):
-        o_i = g.vp['occurrence'][i]
-        o_j = g.vp['occurrence'][j]
-        o.append(o_i * o_j)
-        co.append(g.ep['cooccurrence'][(i, j)])
-    density = 1 / card * np.sum(np.divide(np.square(co), o))
-    return density
-
-def label_density(g, cooccurrence_graphs, norm=None):
-    """label_density
-    Creates a property map with the density of each vertex based on the items
-    contained within the community it represents.
-    Requires a cooccurrence graphs.
-
-    Args:
-        g (:obj:`PhylomemeticGraph`): A phylomemetic graph.
-        cooccurrence_graphs (:obj:`iter` of :obj:`CooccurrenceGraph`): A list
-            of cooccurrence graphs for each time period.
-        norm (function): A normalisation function.
-
-    Returns:
-        community_densities (:obj:`PropertyMap`): A property map containing the
-            densities of the phylomemetic graph vertices.
-    """
-    community_densities = g.new_vertex_property('float')
-
-    g_df = vertices_to_dataframe(g)
-    time_steps = sorted(g_df['label'].unique())
-    label_groups = g_df.groupby('label')
-
-    for (_, group), co_graph in zip(label_groups, cooccurrence_graphs):
-        densities = [community_density(c, co_graph) for c in group['item']]
-        if norm is not None:
-            densities = np.array(densities) / norm(densities)
-        for v, d in zip(group['vertex'], densities):
-            community_densities[v] = d
-
-    return community_densities
-    
 
