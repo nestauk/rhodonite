@@ -10,8 +10,8 @@ from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool
 
-from rhodonite.cliques import (find_cliques_cfinder, filter_subsets,
-        clique_unions, reverse_index_cliques, load_cliques_cfinder)
+from rhodonite.cliques import (filter_subsets, clique_unions,
+        reverse_index_cliques, load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity
 from rhodonite.utilities import window, flatten, clear_graph, get_aggregate_vp
 from rhodonite.tabular import vertices_to_dataframe
