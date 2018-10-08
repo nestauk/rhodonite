@@ -47,10 +47,15 @@ def get_vp_values(g, vertex_prop_name):
     Returns:
         pm (:obj:`PropertyMapArray`): An array of the property map.
     """
+    p_type = g.vp[vertex_prop_name].value_type()
     mask = g.get_vertex_filter()[0]
     if mask is not None:
         mask = np.where(mask.get_array())
-        pm = g.vp[vertex_prop_name].get_array()[mask]
+        if p_type != 'string':
+            pm = g.vp[vertex_prop_name].get_array()[mask]
+        else:
+            pm = [g.vp[vertex_prop_name][v]
+                    for m, v in zip(mask, g.vertices()) if m == True]
     else:
         pm = g.vp[vertex_prop_name].get_array()
     
@@ -177,28 +182,17 @@ def flatten(list_of_iters):
     flat = [item for iter in list_of_iters for item in iter]
     return flat
 
-def seq2cooccurrence(seq):
-    """seq2cooccurrence
-    Converts an iterable sequence to a list of the set of tuples that 
-    represent all the possible cooccurrences.
-
-    Args:
-        seq (:obj:`iter`): List of elements
-        dedupe(
-
-    Returns:
-        cooccurrences (:obj:`list` of :obj:`tuple`): List of tuples. Each
-            tuple is sorted.
-
-    Examples:
-        >>> doc = ['me', 'myself', 'irene']
-
-        >>> sorted(seq2cooccurrence(doc))
-        [('irene', 'me'), ('irene', 'myself'), ('me', 'myself')]
-    """
-    combos = list(itertools.combinations(set(seq), r=2))
-    cooccurrences = list(set([tuple(sorted(c)) for c in combos]))
-    return cooccurrences
+def sequence_item_types(sequence):
+    """sequence_item_types"""
+    if all(isinstance(item, int) for item in sequence):
+        item_types = 'int'
+    elif all(isinstance(item, str) for item in sequence):
+        item_types = 'string'
+    elif all(isinstance(item, float) for item in sequence):
+        item_types = 'float'
+    else:
+        item_types = 'object'
+    return item_types
 
 def window(seq, n=3):
     """window
