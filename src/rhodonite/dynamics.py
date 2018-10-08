@@ -280,7 +280,7 @@ class PhylomemeticGraph(Graph):
         super().__init__(*args, **kwargs)
 
     def from_communities(self, community_sets, labels=None,
-            min_clique_size=None, workers=4, delta_0=0.3, parent_limit=2,
+            min_clique_size=None, workers=1, delta_0=0.3, parent_limit=2,
             color=False):
         """from_communities
         Builds a phylomemetic graph from a set of communities.
