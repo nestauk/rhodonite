@@ -35,22 +35,23 @@ def association_strength(g):
 
     return a_s
 
-def occurrences(g):
+def occurrences(g, sequences):
     """calculate_occurrences
     Calculates the number of times each element in the sequences occurs
     and puts them in to an array ordered by the elements' vertex IDs.
 
     Args:
         g (:obj:`Graph`):
+        sequences (:obj:`iter` of :obj:`iter`):
 
     Returns
-        occurrences (:obj:`PropertyMap`):
+        o (:obj:`PropertyMap`): 
     """
-    occurrence_counts = Counter(flatten(g.idx_sequences))
-    occurrences = g.new_vertex_property('int')
-    for idx, count in occurrence_counts.items():
-        occurrences[g.tokenidx2vertex[idx]] = count
-    return occurrences
+    counts = Counter(flatten(sequences))
+    o = g.new_vertex_property('int')
+    for k, v in counts.items():
+        o[k] = v
+    return o
 
 def cooccurrences(g):
     """cooccurrence
