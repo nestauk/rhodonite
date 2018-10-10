@@ -89,9 +89,9 @@ def edge_property_as_matrix(g, prop_name):
      mat (:obj:`np.array`): The edge property in matrix form, with each
      position (i, j) representing the property value between vertices i and j.
     """
-
-    mat = np.zeros((g.n_vertices, g.n_vertices))
-    prop = g.edge_properties[prop_name]
+    n_vertices = len([_ for _ in g.vertices()])
+    mat = np.zeros((n_vertices, n_vertices))
+    prop = g.ep[prop_name]
     edges = sorted(g.edges())
     if g.is_directed():
         for e in edges:

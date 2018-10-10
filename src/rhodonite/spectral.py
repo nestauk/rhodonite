@@ -21,10 +21,12 @@ def association_strength(g):
     Returns:
         a_s (:obj:`PropertyMap`): Assocation strength property map.
     """
-    cooccurrences = edge_property_as_matrix(g, 'cooccurrences')
-    occurrences = np.array([g.vertex_properties['occurrences'].get_array()])
+    cooccurrences = edge_property_as_matrix(g, 'cooccurrence')
+    occurrences = np.array([g.vertex_properties['occurrence'].get_array()])
 
-    a_s_mat = np.divide((2 * g.n_cooccurrences * cooccurrences),
+    n_cooccurrences = np.sum(g.ep['cooccurrence'].get_array())
+
+    a_s_mat = np.divide((2 * n_cooccurrences * cooccurrences),
             np.multiply(occurrences, occurrences.transpose()))
     a_s = g.new_edge_property('float')
     edge_vertices = [(int(e.source()), int(e.target()))
