@@ -5,7 +5,7 @@ from collections import Counter
 from rhodonite.utilities import edge_property_as_matrix, flatten
 
 
-def association_strength(g):
+def association_strength(g, norm=False, log=False):
     """assocation_strength_adj
     Calculates the symmetric association strength matrix from the
     edge cooccurrence matrix and vertex occurrence vector.
@@ -33,7 +33,10 @@ def association_strength(g):
         for e in sorted(g.edges())]
 
     for s, t in edge_vertices:
-        a_s[g.edge(s, t)] = a_s_mat[s][t]
+        if log:
+            a_s[g.edge(s, t)] = np.log(a_s_mat[s][t])
+        else:
+            a_s[g.edge(s, t)] = a_s_mat[s][t]
 
     return a_s
 

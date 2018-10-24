@@ -47,10 +47,10 @@ def label_ages(g):
         if v in ages:
             continue
         else:
-            year_v = g.vp['times'][v]
+            year_v = g.vp['label'][v]
 
             predecessors = list(v.in_neighbors())
-            years = [g.vp['times'][p] for p in predecessors]
+            years = [g.vp['label'][p] for p in predecessors]
             min_i = np.argmin(years)
             min_neighbor = predecessors[min_i]
             year_neighbor = years[min_i]
