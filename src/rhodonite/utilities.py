@@ -179,7 +179,7 @@ def flatten(list_of_iters):
     Returns:
     flat (:obj:`list`): A flat list.
     """
-    flat = [item for iter in list_of_iters for item in iter]
+    flat = list(itertools.chain(*list_of_iters))
     return flat
 
 def sequence_item_types(sequence):
