@@ -310,7 +310,6 @@ class PhylomemeticGraph(Graph):
             min_clique_size (int):
             workers (int):
             parent_limit (int):
-            color (bool):
             chunksize (int or float):
 
         Returns:
@@ -404,9 +403,6 @@ class PhylomemeticGraph(Graph):
 
         self.ep['group_link_strength'] = group_link_strengths
         self.ep['single_link_strength'] = single_link_strengths
-        
-        colors = [i / len(labels) for i in range(0, len(labels))]
-        community_color = self.new_vertex_property('float')
 
         community_labels = self.new_vertex_property('int')
         community_items = self.new_vertex_property('vector<int>')
@@ -417,11 +413,9 @@ class PhylomemeticGraph(Graph):
             for vertex, c in zip(vertices, communities):
                 community_items[vertex] = np.array(c)
                 community_labels[vertex] = labels[i]
-                community_color[vertex] = colors[i]
 
         self.vp['item'] = community_items
         self.vp['label'] = community_labels
-        self.vp['color'] = community_color
 
         return self
 
