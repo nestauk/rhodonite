@@ -8,7 +8,7 @@ from graph_tool.all import Graph, GraphView
 from itertools import repeat, combinations
 from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
 from rhodonite.utilities import (window, flatten, clear_graph, 
         get_aggregate_vp, reverse_mapping)
@@ -216,7 +216,8 @@ def find_links(args):
             that have been found as well as the corresponding Jaccard indexes.
             Each element is of the format ((source, target) jaccard_index).
     """
-    cf, cfi, cps, pos, cpm, mapping, binarizer, delta_0, parent_limit, threshold = args
+    cf, cfi, cps, pos, cpm, mapping, binarizer, parent_limit, threshold = args
+
     start_p, end_p = pos
     start_f = end_p
     links = []
@@ -239,7 +240,7 @@ def find_links(args):
                 direct_parent = np.nonzero(j == 1)[0][0]
                 parent_cp = cp_matches[direct_parent]
                 links.append(
-                       ((parent_cp + start_p, cfi + start_f), 1)
+                       ((parent_cp + start_p, cfi + start_f), 1, 1)
                         )
                 return links
 
@@ -259,21 +260,31 @@ def find_links(args):
             cuv = set(flatten([cps[i] for i in cui]))
             cp_union_vertices.append(cuv)
 
-        cp_matrix_thresh = binarizer.transform(cp_union_vertices) 
+        cp_union_matrix = binarizer.transform(cp_union_vertices) 
         cf_matrix = binarizer.transform(
-                [cf for _ in range(cp_matrix_thresh.shape[0])]
+                [cf for _ in range(cp_union_matrix.shape[0])]
                 )
-        j_thresh = jaccard_similarity(cf_matrix, cp_matrix_thresh)
-        j_max = np.max(j_thresh)
-        parent_clique_indices = np.nonzero(j_thresh == j_max)[0]
+        j = jaccard_similarity(cf_matrix, cp_union_matrix)
+        cp_union_j_mapping = {k[0]: v[0, 0] for k, v in zip(cp_union_indices, j) if len(k) == 1}
+        j_max = np.max(j)
+        parent_clique_indices = np.nonzero(j == j_max)[0]
         if len(parent_clique_indices) > 0:
+#             j_combined = j[parent_clique_indices]
             parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
+            j_parents = [np.max(j_p) for j_p in j if np.max(j_p) > 0]
             if any(isinstance(i, tuple) for i in parent_cliques):
-                parent_cliques = flatten(parent_cliques)
-            j_parents = [np.max(j) for j in j_thresh if np.max(j) > 0]
+#                 parent_cliques = [parent_cliques]
+                parent_cliques = set(flatten(parent_cliques))
 
-            for pc, j in zip(parent_cliques, j_parents):
-                links.append(((pc + start_p, cfi + start_f), j))
+            for pc in parent_cliques:
+                link = (
+                        (pc + start_p, cfi + start_f),
+                        j_max,
+                        cp_union_j_mapping[pc]
+                    )
+                if len(link) == 2:
+                    print(link)
+                links.append(link)
             return links
 
 
@@ -288,8 +299,8 @@ class PhylomemeticGraph(Graph):
         super().__init__(*args, **kwargs)
 
     def from_communities(self, community_sets, labels=None,
-            min_clique_size=None, workers=1, delta_0=0.3, parent_limit=2,
-            color=False, chunksize=100, threshold=95):
+            min_clique_size=None, parent_limit=2, match_threshold=95,
+            workers='auto', chunksize=0.2):
         """from_communities
         Builds a phylomemetic graph from a set of communities.
 
@@ -298,17 +309,16 @@ class PhylomemeticGraph(Graph):
             labels (:obj:`iter`):
             min_clique_size (int):
             workers (int):
-            delta_0 (float):
             parent_limit (int):
             color (bool):
-            chunksize (int or str):
+            chunksize (int or float):
 
         Returns:
             self
         """
 
         if workers == 'auto':
-            workers = multiprocessing.cpu_count() - 1
+            workers = cpu_count() - 1
 
         community_sets_filt = []
         community_sets_lengths = []
@@ -345,21 +355,16 @@ class PhylomemeticGraph(Graph):
 
         community_matrices = [binarizer_all.transform(c)
                 for c in community_sets]
-        
+ 
         phylomemetic_links = []
         # find direct parents
         for i, (cps, cfs) in enumerate(window(community_sets, 2)):
-#         if chunksize == 'auto':
-          #TODO  
+            if type(chunksize) == float:
+                n_processes = len(cfs)
+                chunksize_i = int(np.ceil(n_processes * chunksize))
 
             n_cf = len(cfs)
             cp_matrix = binarizer_all.transform(cps)
-
-#             matrices_past = list(
-#                     reversed(binarized_community_sets[:i+1])
-#                     )
-            # include positions of the current
-            positions = community_sets_pos[:i+2]
             
             with Pool(workers) as pool:
                 phylomemetic_links.append(
@@ -373,54 +378,35 @@ class PhylomemeticGraph(Graph):
                                 repeat(community_matrices[i], n_cf),
                                 repeat(element_community_mappings[i], n_cf),
                                 repeat(binarizer_all, n_cf),
-                                repeat(delta_0, n_cf),
+#                                 repeat(delta_0, n_cf),
                                 repeat(parent_limit, n_cf),
-                                repeat(threshold, n_cf),
+                                repeat(match_threshold, n_cf),
                                 ),
-                            chunksize=chunksize,
+                            chunksize=chunksize_i,
                             )
                         )
                 pool.close()
                 pool.join()
-
-#             with Pool(workers) as pool:
-#                 phylomemetic_links.append(
-#                         pool.map(
-#                             find_links,
-#                             zip(
-#                                 cfs,
-#                                 range(0, len(cfs)),
-#                                 repeat(cps, n_cf),
-#                                 repeat(possible_parent_matrices, n_cf),
-#                                 repeat(positions, n_cf),
-#                                 repeat(binarizer_all, n_cf),
-#                                 repeat(delta_0, n_cf),
-#                                 repeat(parent_limit, n_cf),
-#                                 ),
-#                             chunksize=chunksize,
-#                             )
-#                         )
-#                     
-#                 pool.close()
-#                 pool.join()
-                                            
         if len(list(self.vertices())) == 0:
             self.add_vertex(n_communities)
 
-        link_strengths = self.new_edge_property('float')
+        group_link_strengths = self.new_edge_property('float')
+        single_link_strengths = self.new_edge_property('float')
         for pl in phylomemetic_links:
             pl = flatten([p for p in pl if p is not None])
             pl_edges = [p[0] for p in pl]
-            pl_weights = [p[1] for p in pl]
+            pl_group_weights = [p[1] for p in pl]
+            pl_single_weights = [p[2] for p in pl]
             self.add_edge_list(set(pl_edges))
-            for e, w in zip(pl_edges, pl_weights):
-                link_strengths[self.edge(e[0], e[1])] = w
+            for e, gw, sw in zip(pl_edges, pl_group_weights, pl_single_weights):
+                group_link_strengths[self.edge(e[0], e[1])] = gw
+                single_link_strengths[self.edge(e[0], e[1])] = sw
 
-        self.ep['link_strength'] = link_strengths
+        self.ep['group_link_strength'] = group_link_strengths
+        self.ep['single_link_strength'] = single_link_strengths
         
-        if color:
-            colors = [i / len(labels) for i in range(0, len(labels))]
-            community_color = self.new_vertex_property('float')
+        colors = [i / len(labels) for i in range(0, len(labels))]
+        community_color = self.new_vertex_property('float')
 
         community_labels = self.new_vertex_property('int')
         community_items = self.new_vertex_property('vector<int>')
@@ -431,13 +417,11 @@ class PhylomemeticGraph(Graph):
             for vertex, c in zip(vertices, communities):
                 community_items[vertex] = np.array(c)
                 community_labels[vertex] = labels[i]
-                if color:
-                    community_color[vertex] = colors[i]
+                community_color[vertex] = colors[i]
 
         self.vp['item'] = community_items
         self.vp['label'] = community_labels
-        if color:
-            self.vp['color'] = community_color
+        self.vp['color'] = community_color
 
         return self
 
