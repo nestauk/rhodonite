@@ -2,6 +2,8 @@ import itertools
 import numpy as np
 import pathlib
 
+from collections import defaultdict
+
 
 def get_aggregate_vp(g, vp, vp_grouper, agg=None):
     """aggregate_property_map
@@ -60,6 +62,23 @@ def get_vp_values(g, vertex_prop_name):
         pm = g.vp[vertex_prop_name].get_array()
     
     return pm
+
+def reverse_mapping(nested_list):
+    """reverse_mapping
+    Creates a mapping from elements to container index.
+
+    Args:
+        nested_list (:obj:`list`): Iterable of iterables.
+
+    Returns:
+        d (:obj:`dict`): A dictionary mapping elements in the nested iterables
+            to the index of the iterable that they appeared within.
+    """
+    d = defaultdict(set)
+    for i, l in enumerate(nested_list):
+        for element in l:
+            d[element].add(i)
+    return d
 
 def clear_graph(g):
     """clear_graph

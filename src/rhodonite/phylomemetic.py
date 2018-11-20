@@ -10,10 +10,11 @@ from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool
 
+from rhodonite.utilities import (window, flatten, clear_graph, 
+        get_aggregate_vp, reverse_mapping)
 from rhodonite.cliques import (filter_subsets, clique_unions,
         reverse_index_cliques, load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity
-from rhodonite.utilities import window, flatten, clear_graph, get_aggregate_vp
 from rhodonite.tabular import vertices_to_dataframe
 
 import time
@@ -215,33 +216,40 @@ def find_links(args):
             that have been found as well as the corresponding Jaccard indexes.
             Each element is of the format ((source, target) jaccard_index).
     """
-    cf, cfi, cps, pp_matrices, pos, binarizer, delta_0, parent_limit = args
-    
-    pos_tmp = pos.copy()
-    start_f, end_f = pos_tmp.pop()
-    pos_tmp = list(reversed(pos_tmp))
-    
+    cf, cfi, cps, pos, cpm, mapping, binarizer, delta_0, parent_limit, threshold = args
+    start_p, end_p = pos
+    start_f = end_p
     links = []
-    for i, pp_matrix in enumerate(pp_matrices):
-        start_p, end_p = pos_tmp[i]
-        cf_matrix = binarizer.transform(
-                [cf for _ in range(pp_matrix.shape[0])]
-                )
-        j = jaccard_similarity(cf_matrix, pp_matrix)
-        if np.max(j) == 1:
-            direct_parent = np.nonzero(j == 1)[0][0]
-            links.append(
-                   ((direct_parent + start_p, cfi + start_f), 1)
+    possible_parents = []
+    cp_indexes = []
+    for element in cf:
+        element_matches = mapping[element]
+        if len(element_matches) == 0:
+            continue
+        else:
+            cp_matches = [em for em in element_matches]
+#             match_matrix = binarizer.transform(cpm[cp_matches, :])
+            match_matrix = cpm[cp_matches, :]
+            cf_matrix = binarizer.transform(
+                    [cf for _ in range(match_matrix.shape[0])]
                     )
-            return links
+            j = jaccard_similarity(cf_matrix, match_matrix)
 
-        # keep the first set of jaccard similarities in case no exact match
-        if i == 0:
-            j_immediate = j.copy()
+            if np.max(j) == 1:
+                direct_parent = np.nonzero(j == 1)[0][0]
+                parent_cp = cp_matches[direct_parent]
+                links.append(
+                       ((parent_cp + start_p, cfi + start_f), 1)
+                        )
+                return links
+
+            thresh = np.percentile(j, threshold)
+            high_j = np.nonzero(j >= thresh)[0]
+            close_matches = [cp_matches[i] for i in high_j]
+            possible_parents.append(close_matches)
     
-    start_p, end_p = pos_tmp[0]
-    cp_indexes = np.nonzero(j_immediate > delta_0)[0]
-    
+    cp_indexes = sorted(set(flatten(possible_parents)))
+     
     if len(cp_indexes) > 0:
         cp_thresh = [cps[i] for i in cp_indexes]
         cp_union_indices = clique_unions(cp_indexes, parent_limit)
@@ -281,7 +289,7 @@ class PhylomemeticGraph(Graph):
 
     def from_communities(self, community_sets, labels=None,
             min_clique_size=None, workers=1, delta_0=0.3, parent_limit=2,
-            color=False):
+            color=False, chunksize=100, threshold=95):
         """from_communities
         Builds a phylomemetic graph from a set of communities.
 
@@ -292,24 +300,40 @@ class PhylomemeticGraph(Graph):
             workers (int):
             delta_0 (float):
             parent_limit (int):
+            color (bool):
+            chunksize (int or str):
 
         Returns:
             self
         """
 
+        if workers == 'auto':
+            workers = multiprocessing.cpu_count() - 1
+
         community_sets_filt = []
         community_sets_lengths = []
+        element_community_mappings = []
         for communities in community_sets:
-            communities_filt = self.filter_communities(
+            cfsilt = self.filter_communities(
                     communities, min_clique_size
                     )
-            community_sets_filt.append(communities_filt)
-            community_sets_lengths.append(len(communities))
+            community_sets_filt.append(cfsilt)
+            community_sets_lengths.append(len(cfsilt))
+            element_community_mappings.append(
+                reverse_mapping(cfsilt)
+                )
 
+        community_vertex_maps = []
         community_sets_pos = []
-        for length, count in zip(
-                community_sets_lengths, np.cumsum(community_sets_lengths)):
-            community_sets_pos.append((count - length, count))
+        cumsum_lengths = np.cumsum(community_sets_lengths)
+        for length, count in zip(community_sets_lengths, cumsum_lengths):
+            start = count - length
+            end = count
+            community_sets_pos.append((start, end))
+            community_vertex_maps.append(
+                    {c: v for c, v in zip(range(length), range(start, end))}
+                        )
+
         n_communities = sum(community_sets_lengths)
 
         vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
@@ -319,40 +343,66 @@ class PhylomemeticGraph(Graph):
                 sparse_output=True)
         binarizer_all.fit(range(0, len_vocab))
 
-        binarized_community_sets = [binarizer_all.transform(c)
+        community_matrices = [binarizer_all.transform(c)
                 for c in community_sets]
         
         phylomemetic_links = []
         # find direct parents
-        for i, (communities_p, communities_f) in enumerate(window(community_sets, 2)):
-            n_cf = len(communities_f)
-            cp_matrix = binarizer_all.transform(communities_p)
+        for i, (cps, cfs) in enumerate(window(community_sets, 2)):
+#         if chunksize == 'auto':
+          #TODO  
 
-            possible_parent_matrices = list(
-                    reversed(binarized_community_sets[:i+1])
-                    )
+            n_cf = len(cfs)
+            cp_matrix = binarizer_all.transform(cps)
+
+#             matrices_past = list(
+#                     reversed(binarized_community_sets[:i+1])
+#                     )
             # include positions of the current
             positions = community_sets_pos[:i+2]
-
+            
             with Pool(workers) as pool:
                 phylomemetic_links.append(
                         pool.map(
                             find_links,
                             zip(
-                                communities_f,
-                                range(0, len(communities_f)),
-                                repeat(communities_p, n_cf),
-                                repeat(possible_parent_matrices, n_cf),
-                                repeat(positions, n_cf),
+                                cfs,
+                                range(0, len(cfs)),
+                                repeat(cps, n_cf),
+                                repeat(community_sets_pos[i], n_cf),
+                                repeat(community_matrices[i], n_cf),
+                                repeat(element_community_mappings[i], n_cf),
                                 repeat(binarizer_all, n_cf),
                                 repeat(delta_0, n_cf),
                                 repeat(parent_limit, n_cf),
-                                )
+                                repeat(threshold, n_cf),
+                                ),
+                            chunksize=chunksize,
                             )
                         )
-                    
                 pool.close()
                 pool.join()
+
+#             with Pool(workers) as pool:
+#                 phylomemetic_links.append(
+#                         pool.map(
+#                             find_links,
+#                             zip(
+#                                 cfs,
+#                                 range(0, len(cfs)),
+#                                 repeat(cps, n_cf),
+#                                 repeat(possible_parent_matrices, n_cf),
+#                                 repeat(positions, n_cf),
+#                                 repeat(binarizer_all, n_cf),
+#                                 repeat(delta_0, n_cf),
+#                                 repeat(parent_limit, n_cf),
+#                                 ),
+#                             chunksize=chunksize,
+#                             )
+#                         )
+#                     
+#                 pool.close()
+#                 pool.join()
                                             
         if len(list(self.vertices())) == 0:
             self.add_vertex(n_communities)
