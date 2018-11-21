@@ -361,6 +361,8 @@ class PhylomemeticGraph(Graph):
             if type(chunksize) == float:
                 n_processes = len(cfs)
                 chunksize_i = int(np.ceil(n_processes * chunksize))
+            else:
+                chunksize_i = chunksize
 
             n_cf = len(cfs)
             cp_matrix = binarizer_all.transform(cps)
