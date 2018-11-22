@@ -29,3 +29,9 @@ def jaccard_similarity(A, B):
 #     j = np.divide(intersection, union)
     return j
 
+def jaccard_similarity_set(a, b):
+    """jaccard_similarity"""
+    intersection = len(list(set(a).intersection(b)))
+    union = (len(a) + len(b)) - intersection
+    return intersection / union
+

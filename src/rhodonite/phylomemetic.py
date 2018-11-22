@@ -14,7 +14,7 @@ from rhodonite.utilities import (window, flatten, clear_graph,
         get_aggregate_vp, reverse_mapping)
 from rhodonite.cliques import (filter_subsets, clique_unions,
         reverse_index_cliques, load_cliques_cfinder)
-from rhodonite.similarity import jaccard_similarity
+from rhodonite.similarity import jaccard_similarity, jaccard_similarity_set
 from rhodonite.tabular import vertices_to_dataframe
 
 import time
@@ -187,6 +187,36 @@ def label_special_events(g):
             branching[v] = True
             merging[v] = True
     return branching, merging
+
+def label_cross_pollination(g, merging_prop, agg=np.mean):
+    """label_cross_pollination
+    """
+    cross_poll_prop = g.new_vertex_property('float')
+    g_merging = GraphView(g, vfilt=lambda v: merging_prop[v] ==  1)
+    parents = []
+    for v in g_merging.vertices():
+        parents = [g.vp['item'][p] for p in g.vertex(v).in_neighbors()]
+        jaccard = agg(
+            [jaccard_similarity(list(c[0]), list(c[1]))
+            for c in combinations(parents, 2)]
+        )
+        cross_poll_prop[v] = jaccard
+    return cross_poll_prop
+
+def label_diversification(g, branching_prop, agg=np.mean):
+    """label_diversification
+    """
+    diversification_prop = g.new_vertex_property('float')
+    g_branching = GraphView(g, vfilt=lambda v: branching_prop[v] ==  1)
+    parents = []
+    for v in g_branching.vertices():
+        children = [g.vp['item'][c] for c in g.vertex(v).out_neighbors()]
+        jaccard = agg(
+            [jaccard_similarity(list(c[0]), list(c[1]))
+            for c in combinations(children, 2)]
+        )
+        diversification_prop[v] = jaccard
+    return diversification_prop
 
 def find_links(args):
     """find_links
