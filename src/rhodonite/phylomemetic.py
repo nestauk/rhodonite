@@ -8,12 +8,13 @@ from graph_tool.all import Graph, GraphView
 from itertools import repeat, combinations
 from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
+from rhodonite.utilities import (window, flatten, clear_graph, 
+        get_aggregate_vp, reverse_mapping)
 from rhodonite.cliques import (filter_subsets, clique_unions,
         reverse_index_cliques, load_cliques_cfinder)
-from rhodonite.similarity import jaccard_similarity
-from rhodonite.utilities import window, flatten, clear_graph, get_aggregate_vp
+from rhodonite.similarity import jaccard_similarity, jaccard_similarity_set
 from rhodonite.tabular import vertices_to_dataframe
 
 import time
@@ -187,6 +188,54 @@ def label_special_events(g):
             merging[v] = True
     return branching, merging
 
+def label_cross_pollination(g, merging_prop, agg=np.mean):
+    """label_cross_pollination
+    Cross-pollination is defined as the average pairwise Jaccard similarity
+    between the parents of a merging node.
+
+    Args:
+        g (:obj:`Graph`): A phylomemetic graph.
+        merging_prop (:obj:`PropertyMap`): A verted property map that is True
+            where a vertex is a merging node.
+        agg(:obj:`function`): An aggregation function. Typically mean or
+            median.
+    """
+    cross_poll_prop = g.new_vertex_property('float')
+    g_merging = GraphView(g, vfilt=lambda v: merging_prop[v] ==  1)
+    parents = []
+    for v in g_merging.vertices():
+        parents = [g.vp['item'][p] for p in g.vertex(v).in_neighbors()]
+        jaccard = agg(
+            [jaccard_similarity(list(c[0]), list(c[1]))
+            for c in combinations(parents, 2)]
+        )
+        cross_poll_prop[v] = jaccard
+    return cross_poll_prop
+
+def label_diversification(g, branching_prop, agg=np.mean):
+    """label_diversification
+    Diversification is defined as the average pairwise Jaccard similarity
+    between the children of a branching node.
+
+    Args:
+        g (:obj:`Graph`): A phylomemetic graph.
+        branching_prop (:obj:`PropertyMap`): A verted property map that is True
+            where a vertex is a branching node.
+        agg(:obj:`function`): An aggregation function. Typically mean or
+            median.
+    """
+    diversification_prop = g.new_vertex_property('float')
+    g_branching = GraphView(g, vfilt=lambda v: branching_prop[v] ==  1)
+    parents = []
+    for v in g_branching.vertices():
+        children = [g.vp['item'][c] for c in g.vertex(v).out_neighbors()]
+        jaccard = agg(
+            [jaccard_similarity(list(c[0]), list(c[1]))
+            for c in combinations(children, 2)]
+        )
+        diversification_prop[v] = jaccard
+    return diversification_prop
+
 def find_links(args):
     """find_links
     Finds the inter-temporal links between a clique at time period and cliques
@@ -198,50 +247,63 @@ def find_links(args):
         cfi (int): The clique index relative to all cliques in the phylomemy.
         cps (:obj:`iter` of :obj:`iter` of int): The cliques from the
             immediately previous time period to cf.
-        pp_matrices (:obj:`iter` of :obj:`matrix`): Multi label binarized
-            cliques from all time periods previous to cf.
-        pos (:obj:`iter` of :obj:`iter`): The start and ending positions of all
-            each set of cliques in the previous time periods, relative to all
-            cliques.
+        pos (:obj:`tuple`): The start and end vertices in the previous time
+            period.
+        cpm (:obj:`scipy.sparse`): Binarized sparse matrix of communties from
+            previous time period.
+        mapping (:obj:`dict`): Maps community elements to communities.
         binarizer (:obj:`MultiLabelBinarizer`): A multi label binarizer fitted
             to the entire vocabulary across all cliques.
-        delta_0 (int): The threshold Jaccard index value for potential parent
-            cliques.
         parent_limit (int): The limit for the size of possible combinations
             of potential parent cliques that will be considered.
+        threshold (float): The minimum percentile for the Jaccard similartiy
+            between parents and children, below which parent candidates will
+            be discarded.
     
     Returns:
         links: (:obj: `list`): A list that contains the inter-temporal edges
             that have been found as well as the corresponding Jaccard indexes.
-            Each element is of the format ((source, target) jaccard_index).
+            Each element is of the format:
+            ((source, target), group_jaccard_index, single_jaccard_index).
+            group_jaccard_index is the Jaccard index of any union of parents
+            that has been identified as the most likely antecedants of the and
+            single_jaccard_index is the individual Jaccard similarity between
+            each potential parent and the child.
     """
-    cf, cfi, cps, pp_matrices, pos, binarizer, delta_0, parent_limit = args
-    
-    pos_tmp = pos.copy()
-    start_f, end_f = pos_tmp.pop()
-    pos_tmp = list(reversed(pos_tmp))
-    
-    links = []
-    for i, pp_matrix in enumerate(pp_matrices):
-        start_p, end_p = pos_tmp[i]
-        cf_matrix = binarizer.transform(
-                [cf for _ in range(pp_matrix.shape[0])]
-                )
-        j = jaccard_similarity(cf_matrix, pp_matrix)
-        if np.max(j) == 1:
-            direct_parent = np.nonzero(j == 1)[0][0]
-            links.append(
-                   ((direct_parent + start_p, cfi + start_f), 1)
-                    )
-            return links
+    cf, cfi, cps, pos, cpm, mapping, binarizer, parent_limit, threshold = args
 
-        # keep the first set of jaccard similarities in case no exact match
-        if i == 0:
-            j_immediate = j.copy()
+    start_p, end_p = pos
+    start_f = end_p
+    links = []
+    possible_parents = []
+    cp_indexes = []
+    for element in cf:
+        element_matches = mapping[element]
+        if len(element_matches) == 0:
+            continue
+        else:
+            cp_matches = [em for em in element_matches]
+            match_matrix = cpm[cp_matches, :]
+            cf_matrix = binarizer.transform(
+                    [cf for _ in range(match_matrix.shape[0])]
+                    )
+            j = jaccard_similarity(cf_matrix, match_matrix)
+
+            if np.max(j) == 1:
+                direct_parent = np.nonzero(j == 1)[0][0]
+                parent_cp = cp_matches[direct_parent]
+                links.append(
+                       ((cfi + start_f, parent_cp + start_p), 1, 1)
+                        )
+                return links
+
+            thresh = np.percentile(j, threshold)
+            high_j = np.nonzero(j >= thresh)[0]
+            close_matches = [cp_matches[i] for i in high_j]
+            possible_parents.append(close_matches)
     
-    start_p, end_p = pos_tmp[0]
-    cp_indexes = np.nonzero(j_immediate > delta_0)[0]
-    
+    cp_indexes = sorted(set(flatten(possible_parents)))
+     
     if len(cp_indexes) > 0:
         cp_thresh = [cps[i] for i in cp_indexes]
         cp_union_indices = clique_unions(cp_indexes, parent_limit)
@@ -251,21 +313,29 @@ def find_links(args):
             cuv = set(flatten([cps[i] for i in cui]))
             cp_union_vertices.append(cuv)
 
-        cp_matrix_thresh = binarizer.transform(cp_union_vertices) 
+        cp_union_matrix = binarizer.transform(cp_union_vertices) 
         cf_matrix = binarizer.transform(
-                [cf for _ in range(cp_matrix_thresh.shape[0])]
+                [cf for _ in range(cp_union_matrix.shape[0])]
                 )
-        j_thresh = jaccard_similarity(cf_matrix, cp_matrix_thresh)
-        j_max = np.max(j_thresh)
-        parent_clique_indices = np.nonzero(j_thresh == j_max)[0]
+        j = jaccard_similarity(cf_matrix, cp_union_matrix)
+        cp_union_j_mapping = {k[0]: v[0, 0] for k, v in zip(cp_union_indices, j) if len(k) == 1}
+        j_max = np.max(j)
+        parent_clique_indices = np.nonzero(j == j_max)[0]
         if len(parent_clique_indices) > 0:
             parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
+            j_parents = [np.max(j_p) for j_p in j if np.max(j_p) > 0]
             if any(isinstance(i, tuple) for i in parent_cliques):
-                parent_cliques = flatten(parent_cliques)
-            j_parents = [np.max(j) for j in j_thresh if np.max(j) > 0]
+                parent_cliques = set(flatten(parent_cliques))
 
-            for pc, j in zip(parent_cliques, j_parents):
-                links.append(((pc + start_p, cfi + start_f), j))
+            for pc in parent_cliques:
+                link = (
+                        (cfi + start_f, pc + start_p),
+                        j_max,
+                        cp_union_j_mapping[pc]
+                    )
+                if len(link) == 2:
+                    print(link)
+                links.append(link)
             return links
 
 
@@ -280,36 +350,55 @@ class PhylomemeticGraph(Graph):
         super().__init__(*args, **kwargs)
 
     def from_communities(self, community_sets, labels=None,
-            min_clique_size=None, workers=1, delta_0=0.3, parent_limit=2,
-            color=False):
+            min_clique_size=None, parent_limit=2, match_threshold=95,
+            workers='auto', chunksize=0.2):
         """from_communities
         Builds a phylomemetic graph from a set of communities.
 
         Args:
-            community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`):
-            labels (:obj:`iter`):
-            min_clique_size (int):
-            workers (int):
-            delta_0 (float):
-            parent_limit (int):
+            community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`): Sets of
+                elements grouped into communities.
+            labels (:obj:`iter`): Labels that identify the period at which each
+                set of communities occurs.
+            min_clique_size (int): The minimum community size to be consider for
+                for a node in the network.
+            workers (int): The number of CPUs to use.
+            parent_limit (int): The maximum combination size for unions of 
+                potential parental candidates.
+            chunksize (int or float): The number of communities for each CPU to
+                process with in each process.
 
         Returns:
             self
         """
 
+        if workers == 'auto':
+            workers = cpu_count() - 1
+
         community_sets_filt = []
         community_sets_lengths = []
+        element_community_mappings = []
         for communities in community_sets:
-            communities_filt = self.filter_communities(
+            cfsilt = self.filter_communities(
                     communities, min_clique_size
                     )
-            community_sets_filt.append(communities_filt)
-            community_sets_lengths.append(len(communities))
+            community_sets_filt.append(cfsilt)
+            community_sets_lengths.append(len(cfsilt))
+            element_community_mappings.append(
+                reverse_mapping(cfsilt)
+                )
 
+        community_vertex_maps = []
         community_sets_pos = []
-        for length, count in zip(
-                community_sets_lengths, np.cumsum(community_sets_lengths)):
-            community_sets_pos.append((count - length, count))
+        cumsum_lengths = np.cumsum(community_sets_lengths)
+        for length, count in zip(community_sets_lengths, cumsum_lengths):
+            start = count - length
+            end = count
+            community_sets_pos.append((start, end))
+            community_vertex_maps.append(
+                    {c: v for c, v in zip(range(length), range(start, end))}
+                        )
+
         n_communities = sum(community_sets_lengths)
 
         vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
@@ -319,58 +408,59 @@ class PhylomemeticGraph(Graph):
                 sparse_output=True)
         binarizer_all.fit(range(0, len_vocab))
 
-        binarized_community_sets = [binarizer_all.transform(c)
+        community_matrices = [binarizer_all.transform(c)
                 for c in community_sets]
-        
+ 
         phylomemetic_links = []
         # find direct parents
-        for i, (communities_p, communities_f) in enumerate(window(community_sets, 2)):
-            n_cf = len(communities_f)
-            cp_matrix = binarizer_all.transform(communities_p)
+        for i, (cps, cfs) in enumerate(window(community_sets, 2)):
+            if type(chunksize) == float:
+                n_processes = len(cfs)
+                chunksize_i = int(np.ceil(n_processes * chunksize))
+            else:
+                chunksize_i = chunksize
 
-            possible_parent_matrices = list(
-                    reversed(binarized_community_sets[:i+1])
-                    )
-            # include positions of the current
-            positions = community_sets_pos[:i+2]
-
+            n_cf = len(cfs)
+            cp_matrix = binarizer_all.transform(cps)
+            
             with Pool(workers) as pool:
                 phylomemetic_links.append(
                         pool.map(
                             find_links,
                             zip(
-                                communities_f,
-                                range(0, len(communities_f)),
-                                repeat(communities_p, n_cf),
-                                repeat(possible_parent_matrices, n_cf),
-                                repeat(positions, n_cf),
+                                cfs,
+                                range(0, len(cfs)),
+                                repeat(cps, n_cf),
+                                repeat(community_sets_pos[i], n_cf),
+                                repeat(community_matrices[i], n_cf),
+                                repeat(element_community_mappings[i], n_cf),
                                 repeat(binarizer_all, n_cf),
-                                repeat(delta_0, n_cf),
+#                                 repeat(delta_0, n_cf),
                                 repeat(parent_limit, n_cf),
-                                )
+                                repeat(match_threshold, n_cf),
+                                ),
+                            chunksize=chunksize_i,
                             )
                         )
-                    
                 pool.close()
                 pool.join()
-                                            
         if len(list(self.vertices())) == 0:
             self.add_vertex(n_communities)
 
-        link_strengths = self.new_edge_property('float')
+        group_link_strengths = self.new_edge_property('float')
+        single_link_strengths = self.new_edge_property('float')
         for pl in phylomemetic_links:
             pl = flatten([p for p in pl if p is not None])
             pl_edges = [p[0] for p in pl]
-            pl_weights = [p[1] for p in pl]
+            pl_group_weights = [p[1] for p in pl]
+            pl_single_weights = [p[2] for p in pl]
             self.add_edge_list(set(pl_edges))
-            for e, w in zip(pl_edges, pl_weights):
-                link_strengths[self.edge(e[0], e[1])] = w
+            for e, gw, sw in zip(pl_edges, pl_group_weights, pl_single_weights):
+                group_link_strengths[self.edge(e[0], e[1])] = gw
+                single_link_strengths[self.edge(e[0], e[1])] = sw
 
-        self.ep['link_strength'] = link_strengths
-        
-        if color:
-            colors = [i / len(labels) for i in range(0, len(labels))]
-            community_color = self.new_vertex_property('float')
+        self.ep['group_link_strength'] = group_link_strengths
+        self.ep['single_link_strength'] = single_link_strengths
 
         community_labels = self.new_vertex_property('int')
         community_items = self.new_vertex_property('vector<int>')
@@ -381,13 +471,9 @@ class PhylomemeticGraph(Graph):
             for vertex, c in zip(vertices, communities):
                 community_items[vertex] = np.array(c)
                 community_labels[vertex] = labels[i]
-                if color:
-                    community_color[vertex] = colors[i]
 
         self.vp['item'] = community_items
         self.vp['label'] = community_labels
-        if color:
-            self.vp['color'] = community_color
 
         return self
 

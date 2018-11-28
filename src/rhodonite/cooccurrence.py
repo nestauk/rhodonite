@@ -12,7 +12,7 @@ from rhodonite.utilities import window, flatten, sequence_item_types
 
 class CooccurrenceGraph(Graph):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, directed=False, *args, **kwargs):
         """SlidingWindowGraph
         A graph class that has methods for contructing cooccurrence networks.
 
@@ -32,7 +32,7 @@ class CooccurrenceGraph(Graph):
             ep.cooccurrence (int):
             ep.distance (vector<int>):
         """
-        super().__init__(directed=False, *args, **kwargs)
+        super().__init__(directed=directed, *args, **kwargs)
 
     def from_matrix(self, matrix, dictionary):
         """from matrix
@@ -89,6 +89,10 @@ class CooccurrenceGraph(Graph):
  
         cooccurrences, distances = self.seqs2cooccurrences(
                 sequences, window_size)
+
+        if self.is_directed():
+            cooccurrences.update({k[::-1]: v for k, v in cooccurrences.items()})
+            distances.update({k[::-1]: v for k, v in distances.items()})
 
         self.add_edge_list(set(cooccurrences.keys()))
         if distance_agg is not None:

@@ -65,7 +65,7 @@ def clique_unions(clique_indices, limit):
             combinations.
     """
     combos = []
-    for l in range(1, limit):
+    for l in range(1, limit + 1):
         for combo in itertools.combinations(clique_indices, l):
             combos.append(tuple(combo))
     return combos

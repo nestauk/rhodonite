@@ -2,6 +2,8 @@ import itertools
 import numpy as np
 import pathlib
 
+from collections import defaultdict
+
 
 def get_aggregate_vp(g, vp, vp_grouper, agg=None):
     """aggregate_property_map
@@ -60,6 +62,23 @@ def get_vp_values(g, vertex_prop_name):
         pm = g.vp[vertex_prop_name].get_array()
     
     return pm
+
+def reverse_mapping(nested_list):
+    """reverse_mapping
+    Creates a mapping from elements to container index.
+
+    Args:
+        nested_list (:obj:`list`): Iterable of iterables.
+
+    Returns:
+        d (:obj:`dict`): A dictionary mapping elements in the nested iterables
+            to the index of the iterable that they appeared within.
+    """
+    d = defaultdict(set)
+    for i, l in enumerate(nested_list):
+        for element in l:
+            d[element].add(i)
+    return d
 
 def clear_graph(g):
     """clear_graph
@@ -216,142 +235,3 @@ def window(seq, n=3):
         result = result[1:] + (elem,)
         yield result
 
-
-#     def get_occurrence(self, label):
-#         """get_occurrences
-#         Returns the number of occurrences for a label from the occurrences
-#         vector.
-# 
-#         Args:
-#             label: A label from the original set of sequences.
-# 
-#         Returns:
-#             The number of times the label occurred within the sequences.
-#         """
-# 
-#         return self.occurences[self.label2vertex[label]]
-
-
-#     def get_cooccurrence(self, label_0, label_1):
-#         """get_edge_cooccurrence
-#         Get the number of cooccurrences between two labels.
-# 
-#         Args:
-#             label_0: A label from the sequence.
-#             label_1: A label from the sequences
-# 
-#         Returns:
-#             co: The number of times the two labels coocur.
-#         """
-#         i_0 = self.label2vertex[label_0]
-#         i_1 = self.label2_vertex[label_1]
-#         co = self.cooccurrences[i_0][i_1]
-#         return co
-
-# def edge_cooccurrence_counts(cooccurrences):
-#     """cooccurrence_counts
-#     Takes a corpus of document cooccurrence combinations and returns a
-#     Counter object for them across the entire corpus.
-#     
-#     Args:
-#         cooccurrences (:obj:`list` of :obj:`list` of :obj:`tuple`): 
-#             Corpus of documents expressed as their cooccurrence pairs.
-#             
-#     Returns:
-#         cooccurrence_counts (:obj:`Counter`): Counter with keys as edges
-#             and values as number of cooccurrences between the two vertices.
-#     """
-#     cooccurrence_counts = Counter(flatten(cooccurrences))
-#     return cooccurrence_counts
-# 
-# def vertex_degree_centrality(cooccurrence_counts):
-#     """vertex_degree_centrality
-#     Takes a Counter of edge cooccurrences and returns the degree centrality
-#     for each vertex.
-#     
-#     Args:
-#         cooccurrence_counts (:obj:`Counter`): Counter with keys as edges
-#             and values as number of cooccurrences between the two vertices.
-#             
-#     Returns: 
-#         vertex_degrees (:obj:`Counter`): Counter with keys as vertices
-#             and values as degree centralities.
-#     """
-#     vertex_degrees = Counter()
-#     for vertices, count in cooccurrence_counts.items():
-#         v_0 = vertices[0]
-#         v_1 = vertices[1]
-#         if v_0 in vertex_degrees:
-#             vertex_degrees[v_0] += 1
-#         else:
-#             vertex_degrees[v_0] = 1
-#             
-#         if v_1 in vertex_degrees:
-#             vertex_degrees[v_1] += 1
-#         else:
-#             vertex_degrees[v_1] = 1
-# 
-#     return vertex_degrees
-# 
-# def vertex_cooccurrence_centrality(cooccurrence_counts):
-#     """vertex_cooccurrence_centrality
-#     Takes a Counter of edge cooccurences and returns the cooccurrence centrality
-#     for each vertex. This is a summation of all cooccurrences for each vertex.
-#     
-#     Args:
-#         cooccurrence_counts (:obj:`Counter`): Counter with keys as edges
-#             and values as number of cooccurrences between the two vertices.
-#             
-#     Returns:
-#         vertex_cooccurrences (:obj:`Counter`): Counter with keys as vertices
-#             and values as number of cooccurrences.
-#     """
-#     
-#     vertex_cooccurrences = Counter()
-#     for vertices, count in cooccurrence_counts.items():
-#         v_0 = vertices[0]
-#         v_1 = vertices[1]
-#         if v_0 in vertex_cooccurrences:
-#             vertex_cooccurrences[v_0] += count
-#         else:
-#             vertex_cooccurrences[v_0] = count
-#         if v_1 in vertex_cooccurrences:
-#             vertex_cooccurrences[v_1] += count
-#         else:
-#             vertex_cooccurrences[v_1] = count
-#         self.vertex_cooccurrences = vertex_cooccurrences
-#     return vertex_cooccurrences
-# 
-# def edge_assocation_strength(self, n_coocurs, edge_coocurs, source_count,
-#         target_count):
-#     """assocation strength
-#     Calculates the probabalistic assocation strength between two vertices
-#     in a cooccurrence network.
-# 
-#     Args:
-#         n_coocurs (int): Total number of cooccurrences in the network.
-#         edge_coocurs (int): Number cooccurrences between the  source and
-#             target vertices. 
-#         source_count (int): Total number of occurences of the source
-#             vertex.
-#         target_count (int): Total number of occurrences of the target
-#             vertex.
-# 
-#     Returns:
-#         a_s (float): Calculated association strength between the source and
-#             target vertices.
-#     """
-# 
-#     a_s = (2 * n_coocurs * edge_coocurs) / (source_count * target_count)
-#     return a_s
-
-#     def edge_association_strengths(self):
-#         association_strength_prop = self.new_edge_property("float")
-#         for s, t in edges:
-#             association_strength_prop[self.edge(s, t)] = assoc_strength(
-#                     n_cooccurrences,
-#                     edge_cooccurrences[tuple(sorted([s, t]))],
-#                     vertex_cooccurrences[s],
-#                     vertex_cooccurrences[t]
-#                     )
-#             self.edge_properties['association_strength'] = association_strength_prop
