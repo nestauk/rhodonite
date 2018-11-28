@@ -63,3 +63,8 @@ docs/_build
 .bootstrap
 .appveyor.token
 *.bak
+
+#vim
+*.swo
+*.swp
+*.swn
