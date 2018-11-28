@@ -190,6 +190,15 @@ def label_special_events(g):
 
 def label_cross_pollination(g, merging_prop, agg=np.mean):
     """label_cross_pollination
+    Cross-pollination is defined as the average pairwise Jaccard similarity
+    between the parents of a merging node.
+
+    Args:
+        g (:obj:`Graph`): A phylomemetic graph.
+        merging_prop (:obj:`PropertyMap`): A verted property map that is True
+            where a vertex is a merging node.
+        agg(:obj:`function`): An aggregation function. Typically mean or
+            median.
     """
     cross_poll_prop = g.new_vertex_property('float')
     g_merging = GraphView(g, vfilt=lambda v: merging_prop[v] ==  1)
@@ -205,6 +214,15 @@ def label_cross_pollination(g, merging_prop, agg=np.mean):
 
 def label_diversification(g, branching_prop, agg=np.mean):
     """label_diversification
+    Diversification is defined as the average pairwise Jaccard similarity
+    between the children of a branching node.
+
+    Args:
+        g (:obj:`Graph`): A phylomemetic graph.
+        branching_prop (:obj:`PropertyMap`): A verted property map that is True
+            where a vertex is a branching node.
+        agg(:obj:`function`): An aggregation function. Typically mean or
+            median.
     """
     diversification_prop = g.new_vertex_property('float')
     g_branching = GraphView(g, vfilt=lambda v: branching_prop[v] ==  1)
@@ -229,22 +247,28 @@ def find_links(args):
         cfi (int): The clique index relative to all cliques in the phylomemy.
         cps (:obj:`iter` of :obj:`iter` of int): The cliques from the
             immediately previous time period to cf.
-        pp_matrices (:obj:`iter` of :obj:`matrix`): Multi label binarized
-            cliques from all time periods previous to cf.
-        pos (:obj:`iter` of :obj:`iter`): The start and ending positions of all
-            each set of cliques in the previous time periods, relative to all
-            cliques.
+        pos (:obj:`tuple`): The start and end vertices in the previous time
+            period.
+        cpm (:obj:`scipy.sparse`): Binarized sparse matrix of communties from
+            previous time period.
+        mapping (:obj:`dict`): Maps community elements to communities.
         binarizer (:obj:`MultiLabelBinarizer`): A multi label binarizer fitted
             to the entire vocabulary across all cliques.
-        delta_0 (int): The threshold Jaccard index value for potential parent
-            cliques.
         parent_limit (int): The limit for the size of possible combinations
             of potential parent cliques that will be considered.
+        threshold (float): The minimum percentile for the Jaccard similartiy
+            between parents and children, below which parent candidates will
+            be discarded.
     
     Returns:
         links: (:obj: `list`): A list that contains the inter-temporal edges
             that have been found as well as the corresponding Jaccard indexes.
-            Each element is of the format ((source, target) jaccard_index).
+            Each element is of the format:
+            ((source, target), group_jaccard_index, single_jaccard_index).
+            group_jaccard_index is the Jaccard index of any union of parents
+            that has been identified as the most likely antecedants of the and
+            single_jaccard_index is the individual Jaccard similarity between
+            each potential parent and the child.
     """
     cf, cfi, cps, pos, cpm, mapping, binarizer, parent_limit, threshold = args
 
@@ -259,7 +283,6 @@ def find_links(args):
             continue
         else:
             cp_matches = [em for em in element_matches]
-#             match_matrix = binarizer.transform(cpm[cp_matches, :])
             match_matrix = cpm[cp_matches, :]
             cf_matrix = binarizer.transform(
                     [cf for _ in range(match_matrix.shape[0])]
@@ -270,7 +293,7 @@ def find_links(args):
                 direct_parent = np.nonzero(j == 1)[0][0]
                 parent_cp = cp_matches[direct_parent]
                 links.append(
-                       ((parent_cp + start_p, cfi + start_f), 1, 1)
+                       ((cfi + start_f, parent_cp + start_p), 1, 1)
                         )
                 return links
 
@@ -299,16 +322,14 @@ def find_links(args):
         j_max = np.max(j)
         parent_clique_indices = np.nonzero(j == j_max)[0]
         if len(parent_clique_indices) > 0:
-#             j_combined = j[parent_clique_indices]
             parent_cliques = itemgetter(*parent_clique_indices)(cp_union_indices)
             j_parents = [np.max(j_p) for j_p in j if np.max(j_p) > 0]
             if any(isinstance(i, tuple) for i in parent_cliques):
-#                 parent_cliques = [parent_cliques]
                 parent_cliques = set(flatten(parent_cliques))
 
             for pc in parent_cliques:
                 link = (
-                        (pc + start_p, cfi + start_f),
+                        (cfi + start_f, pc + start_p),
                         j_max,
                         cp_union_j_mapping[pc]
                     )
@@ -335,12 +356,17 @@ class PhylomemeticGraph(Graph):
         Builds a phylomemetic graph from a set of communities.
 
         Args:
-            community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`):
-            labels (:obj:`iter`):
-            min_clique_size (int):
-            workers (int):
-            parent_limit (int):
-            chunksize (int or float):
+            community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`): Sets of
+                elements grouped into communities.
+            labels (:obj:`iter`): Labels that identify the period at which each
+                set of communities occurs.
+            min_clique_size (int): The minimum community size to be consider for
+                for a node in the network.
+            workers (int): The number of CPUs to use.
+            parent_limit (int): The maximum combination size for unions of 
+                potential parental candidates.
+            chunksize (int or float): The number of communities for each CPU to
+                process with in each process.
 
         Returns:
             self
