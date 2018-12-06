@@ -236,6 +236,105 @@ def label_diversification(g, branching_prop, agg=np.mean):
         diversification_prop[v] = jaccard
     return diversification_prop
 
+def label_item_emergence(g):
+    """label_item_emergence
+    Creates property maps that label whether a vertex contains an item that is
+    emerging. An item is defined as emerging if it appears for the first time in
+    the network.
+
+    Args:
+        g (:obj:`graph_tool.Graph`): A graph.
+    Returns:
+        item_emergence_count (:obj:`graph_tool.PropertyMap`): Property map
+            with values representing the number of emerging items in a vertex.
+        item_emergence_item (:obj:`graph_tool.PropertyMap`): Property map
+            with a list of emerging items for each vertex.
+    """
+    item_emergence_count = g.new_vertex_property('int')
+    item_emergence_item = g.new_vertex_property('vector<int>')
+
+    for term, vertices in g.reverse_mapping.items():
+        # find first time item appears
+        v_0 = sorted(vertices)[0]
+        label = g.vp['label'][v_0]
+        for v in vertices:
+            if g.vp['label'][v] == label:
+                item_emergence_count[v] += 1
+                item_emergence_item[v].append(term)
+    return item_emergence_count, item_emergence_item
+
+def label_item_inheritance(g, item_emergence_item_prop):
+    """label_item_inheritance
+    Creates property maps that labels vertices as containing recombining or
+    reconducting items. An item is recombining for a community if it exists
+    previously in the phylomemetic network, but not in a direct ancestor of 
+    the community. An item is reconducting for a community if it exists in a
+    direct parent of the community.
+    
+    Args:
+        g (:obj:`graph_tool.Graph`): A graph.
+        item_emergence_item_prop (:obj:`graph_tool.PropertyMap`): Items that
+            are emerging as calculated by label_item_emergence.
+    Returns:
+        item_recombination_count (:obj:`graph_tool.PropertyMap`): Property map
+            with values representing the number of recombining items in a
+            vertex.
+        item_recombination_item (:obj:`graph_tool.PropertyMap`): Property map
+            with a list of recombining items for each vertex.
+        item_reconduction_count (:obj:`graph_tool.PropertyMap`): Property map 
+            with values representing the number of reconducting items in a
+            vertex.
+            
+        item_reconduction_item (:obj:`graph_tool.PropertyMap`): Property map
+            with a list of reconducting items for each vertex.
+    """
+    item_reconduction_count = g.new_vertex_property('int')
+    item_reconduction_item = g.new_vertex_property('vector<int>')
+    
+    item_recombination_count = g.new_vertex_property('int')
+    item_recombination_item = g.new_vertex_property('vector<int>')
+    
+    vertex_parents = {}
+    vertex_predecessors = {}
+    
+    for term, vertices in g.reverse_mapping.items():
+        for v in vertices:
+            if term not in item_emergence_item_prop[v]:
+                if v not in vertex_parents:
+                    dist_map, pred_map, pred_visited = shortest_distance(
+                        pg,
+                        source=v,
+                        pred_map=True,
+                        return_reached=True,
+                    )
+                    parents = set([g.vertex(p) for p in pred_visited])
+                    vertex_parents[v] = parents
+                else:
+                    parents = vertex_parents[v]
+
+                if v not in vertex_predecessors:
+                    label = g.vp['label'][v]
+                    predecessors = set([p for p in vertices if g.vp['label'][p] < label])
+                    vertex_predecessors[v] = predecessors
+                else:
+                    predecessors = vertex_predecessors[v]
+
+                overlap = predecessors.intersection(parents)
+                n_overlap = len(overlap)
+
+                if n_overlap > 0:
+                    item_reconduction_item[v].append(term)
+                    item_reconduction_count[v] += 1
+                elif n_overlap == 0:
+                    item_recombination_item[v].append(term)
+                    item_recombination_count[v] += 1
+    return (
+        item_recombination_count, 
+        item_recombination_item, 
+        item_reconduction_count, 
+        item_reconduction_item
+    )
+
 def find_links(args):
     """find_links
     Finds the inter-temporal links between a clique at time period and cliques
