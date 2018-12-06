@@ -253,7 +253,7 @@ def label_item_emergence(g):
     item_emergence_count = g.new_vertex_property('int')
     item_emergence_item = g.new_vertex_property('vector<int>')
 
-    for term, vertices in g.reverse_mapping.items():
+    for term, vertices in reverse_mapping(g).items():
         # find first time item appears
         v_0 = sorted(vertices)[0]
         label = g.vp['label'][v_0]
@@ -297,7 +297,7 @@ def label_item_inheritance(g, item_emergence_item_prop):
     vertex_parents = {}
     vertex_predecessors = {}
     
-    for term, vertices in g.reverse_mapping.items():
+    for term, vertices in reverse_mapping(g).items():
         for v in vertices:
             if term not in item_emergence_item_prop[v]:
                 if v not in vertex_parents:
@@ -334,6 +334,26 @@ def label_item_inheritance(g, item_emergence_item_prop):
         item_reconduction_count, 
         item_reconduction_item
     )
+
+def reverse_mapping(g):
+    """_reverse_mapping
+    Returns the reverse mapping of items to vertices for the graph. If it
+    does not exist, it is created.
+
+    Returns:
+        self.reverse_mapping (dict): A mapping of community items to sets
+            of vertices.
+    """
+    if not hasattr(g, 'reverse_mapping'):
+        reverse_mapping = defaultdict(set)
+
+        for v in g.vertices():
+            items = g.vp['item'][v]
+            for item in items:
+                reverse_mapping[item].add(v)
+        g.reverse_mapping = reverse_mapping
+
+    return g.reverse_mapping
 
 def find_links(args):
     """find_links
