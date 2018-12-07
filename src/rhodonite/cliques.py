@@ -28,30 +28,6 @@ def load_cliques_cfinder(file_path):
                 cliques.append(clique)
     return cliques
 
-def reverse_index_cliques(clique_set):
-    """reverse_index_cliques
-    Takes a set of network cliques and return all possible combinations of
-    cliques where all cliques in a combination contain at least one common
-    value.
-
-    Args:
-        clique_set (:obj:`iter` of :obj:`iter`): A set of cliques where 
-            each element in the nested iterable contain vertices in the
-            network.
-
-    Returns:
-        clique_union_indices (:obj:`list` of :obj:`tuple`): A list of the
-            combinations of clique indices.
-        clique_union_vertices (:obj:`list` of :obj:`tuple`): A list of the
-            sets of vertices that comprise the clique combinations.
-    """
-    mapping = defaultdict(list)
-    for i, cs in enumerate(clique_set):
-        for vertex in cs:
-            mapping[vertex].append(i)
-    mapping = {k: tuple(v) for k, v in mapping.items()}
-    return mapping
-
 def clique_unions(clique_indices, limit):
     """clique_unions
     Create combinations of cliques up to limit.

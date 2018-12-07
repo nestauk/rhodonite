@@ -63,7 +63,7 @@ def get_vp_values(g, vertex_prop_name):
     
     return pm
 
-def reverse_mapping(nested_list):
+def reverse_index_communities(nested_list):
     """reverse_mapping
     Creates a mapping from elements to container index.
 

@@ -5,15 +5,16 @@ import os
 
 from collections import defaultdict
 from graph_tool.all import Graph, GraphView
+from graph_tool.topology import all_predecessors, shortest_distance
 from itertools import repeat, combinations
 from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool, cpu_count
 
 from rhodonite.utilities import (window, flatten, clear_graph, 
-        get_aggregate_vp, reverse_mapping)
+        get_aggregate_vp, reverse_index_communities)
 from rhodonite.cliques import (filter_subsets, clique_unions,
-        reverse_index_cliques, load_cliques_cfinder)
+        load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity, jaccard_similarity_set
 from rhodonite.tabular import vertices_to_dataframe
 
@@ -302,7 +303,7 @@ def label_item_inheritance(g, item_emergence_item_prop):
             if term not in item_emergence_item_prop[v]:
                 if v not in vertex_parents:
                     dist_map, pred_map, pred_visited = shortest_distance(
-                        pg,
+                        g,
                         source=v,
                         pred_map=True,
                         return_reached=True,
@@ -504,7 +505,7 @@ class PhylomemeticGraph(Graph):
             community_sets_filt.append(cfsilt)
             community_sets_lengths.append(len(cfsilt))
             element_community_mappings.append(
-                reverse_mapping(cfsilt)
+                reverse_index_communities(cfsilt)
                 )
 
         community_vertex_maps = []
