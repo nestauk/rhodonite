@@ -38,7 +38,7 @@ def label_ages(g):
     # get all vertices with age 0 in dictionary
     ages = {}
     for v in g.vertices():
-        if v.in_degree() == 0:
+        if v.out_degree() == 0:
             ages[v] = 0
 
     # find youngest in-neighbour of each node
@@ -51,7 +51,7 @@ def label_ages(g):
         else:
             year_v = g.vp['label'][v]
 
-            predecessors = list(v.in_neighbors())
+            predecessors = list(v.out_neighbors())
             years = [g.vp['label'][p] for p in predecessors]
             min_i = np.argmin(years)
             min_neighbor = predecessors[min_i]
@@ -147,10 +147,10 @@ def label_emergence(g):
         if (v.in_degree() == 0) & (v.out_degree() == 0):
             # ephemeral
             emergence[v] = 0
-        elif (v.in_degree() == 0) & (v.out_degree() > 0):
+        elif (v.out_degree() == 0) & (v.in_degree() > 0):
             # emerging
             emergence[v] = 1
-        elif (v.in_degree() > 0) & (v.out_degree() == 0):
+        elif (v.out_degree() > 0) & (v.in_degree() == 0):
             # declining
             emergence[v] = 3
         else:
@@ -175,15 +175,15 @@ def label_special_events(g):
     branching = g.new_vertex_property('bool')
     merging = g.new_vertex_property('bool')
     for v in g.vertices():
-        if (v.in_degree() < 2) & (v.out_degree() >= 2):
+        if (v.out_degree() < 2) & (v.in_degree() >= 2):
             # branching
             branching[v] = True
             merging[v] = False
-        elif (v.in_degree() >= 2) & (v.out_degree() < 2):
+        elif (v.out_degree() >= 2) & (v.in_degree() < 2):
             # merging
             branching[v] = False
             merging[v] = True
-        elif (v.in_degree() >= 2) & (v.out_degree() >= 2):
+        elif (v.out_degree() >= 2) & (v.in_degree() >= 2):
             # branching and merging
             branching[v] = True
             merging[v] = True
@@ -205,7 +205,7 @@ def label_cross_pollination(g, merging_prop, agg=np.mean):
     g_merging = GraphView(g, vfilt=lambda v: merging_prop[v] ==  1)
     parents = []
     for v in g_merging.vertices():
-        parents = [g.vp['item'][p] for p in g.vertex(v).in_neighbors()]
+        parents = [g.vp['item'][p] for p in g.vertex(v).out_neighbors()]
         jaccard = agg(
             [jaccard_similarity(list(c[0]), list(c[1]))
             for c in combinations(parents, 2)]
@@ -229,7 +229,7 @@ def label_diversification(g, branching_prop, agg=np.mean):
     g_branching = GraphView(g, vfilt=lambda v: branching_prop[v] ==  1)
     parents = []
     for v in g_branching.vertices():
-        children = [g.vp['item'][c] for c in g.vertex(v).out_neighbors()]
+        children = [g.vp['item'][c] for c in g.vertex(v).in_neighbors()]
         jaccard = agg(
             [jaccard_similarity(list(c[0]), list(c[1]))
             for c in combinations(children, 2)]
