@@ -5,15 +5,16 @@ import os
 
 from collections import defaultdict
 from graph_tool.all import Graph, GraphView
+from graph_tool.topology import all_predecessors, shortest_distance
 from itertools import repeat, combinations
 from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool, cpu_count
 
 from rhodonite.utilities import (window, flatten, clear_graph, 
-        get_aggregate_vp, reverse_mapping)
+        get_aggregate_vp, reverse_index_communities)
 from rhodonite.cliques import (filter_subsets, clique_unions,
-        reverse_index_cliques, load_cliques_cfinder)
+        load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity, jaccard_similarity_set
 from rhodonite.tabular import vertices_to_dataframe
 
@@ -37,7 +38,7 @@ def label_ages(g):
     # get all vertices with age 0 in dictionary
     ages = {}
     for v in g.vertices():
-        if v.in_degree() == 0:
+        if v.out_degree() == 0:
             ages[v] = 0
 
     # find youngest in-neighbour of each node
@@ -50,7 +51,7 @@ def label_ages(g):
         else:
             year_v = g.vp['label'][v]
 
-            predecessors = list(v.in_neighbors())
+            predecessors = list(v.out_neighbors())
             years = [g.vp['label'][p] for p in predecessors]
             min_i = np.argmin(years)
             min_neighbor = predecessors[min_i]
@@ -146,10 +147,10 @@ def label_emergence(g):
         if (v.in_degree() == 0) & (v.out_degree() == 0):
             # ephemeral
             emergence[v] = 0
-        elif (v.in_degree() == 0) & (v.out_degree() > 0):
+        elif (v.out_degree() == 0) & (v.in_degree() > 0):
             # emerging
             emergence[v] = 1
-        elif (v.in_degree() > 0) & (v.out_degree() == 0):
+        elif (v.out_degree() > 0) & (v.in_degree() == 0):
             # declining
             emergence[v] = 3
         else:
@@ -174,15 +175,15 @@ def label_special_events(g):
     branching = g.new_vertex_property('bool')
     merging = g.new_vertex_property('bool')
     for v in g.vertices():
-        if (v.in_degree() < 2) & (v.out_degree() >= 2):
+        if (v.out_degree() < 2) & (v.in_degree() >= 2):
             # branching
             branching[v] = True
             merging[v] = False
-        elif (v.in_degree() >= 2) & (v.out_degree() < 2):
+        elif (v.out_degree() >= 2) & (v.in_degree() < 2):
             # merging
             branching[v] = False
             merging[v] = True
-        elif (v.in_degree() >= 2) & (v.out_degree() >= 2):
+        elif (v.out_degree() >= 2) & (v.in_degree() >= 2):
             # branching and merging
             branching[v] = True
             merging[v] = True
@@ -204,7 +205,7 @@ def label_cross_pollination(g, merging_prop, agg=np.mean):
     g_merging = GraphView(g, vfilt=lambda v: merging_prop[v] ==  1)
     parents = []
     for v in g_merging.vertices():
-        parents = [g.vp['item'][p] for p in g.vertex(v).in_neighbors()]
+        parents = [g.vp['item'][p] for p in g.vertex(v).out_neighbors()]
         jaccard = agg(
             [jaccard_similarity(list(c[0]), list(c[1]))
             for c in combinations(parents, 2)]
@@ -228,13 +229,132 @@ def label_diversification(g, branching_prop, agg=np.mean):
     g_branching = GraphView(g, vfilt=lambda v: branching_prop[v] ==  1)
     parents = []
     for v in g_branching.vertices():
-        children = [g.vp['item'][c] for c in g.vertex(v).out_neighbors()]
+        children = [g.vp['item'][c] for c in g.vertex(v).in_neighbors()]
         jaccard = agg(
             [jaccard_similarity(list(c[0]), list(c[1]))
             for c in combinations(children, 2)]
         )
         diversification_prop[v] = jaccard
     return diversification_prop
+
+def label_item_emergence(g):
+    """label_item_emergence
+    Creates property maps that label whether a vertex contains an item that is
+    emerging. An item is defined as emerging if it appears for the first time in
+    the network.
+
+    Args:
+        g (:obj:`graph_tool.Graph`): A graph.
+    Returns:
+        item_emergence_count (:obj:`graph_tool.PropertyMap`): Property map
+            with values representing the number of emerging items in a vertex.
+        item_emergence_item (:obj:`graph_tool.PropertyMap`): Property map
+            with a list of emerging items for each vertex.
+    """
+    item_emergence_count = g.new_vertex_property('int')
+    item_emergence_item = g.new_vertex_property('vector<int>')
+
+    for term, vertices in reverse_mapping(g).items():
+        # find first time item appears
+        v_0 = sorted(vertices)[0]
+        label = g.vp['label'][v_0]
+        for v in vertices:
+            if g.vp['label'][v] == label:
+                item_emergence_count[v] += 1
+                item_emergence_item[v].append(term)
+    return item_emergence_count, item_emergence_item
+
+def label_item_inheritance(g, item_emergence_item_prop):
+    """label_item_inheritance
+    Creates property maps that labels vertices as containing recombining or
+    reconducting items. An item is recombining for a community if it exists
+    previously in the phylomemetic network, but not in a direct ancestor of 
+    the community. An item is reconducting for a community if it exists in a
+    direct parent of the community.
+    
+    Args:
+        g (:obj:`graph_tool.Graph`): A graph.
+        item_emergence_item_prop (:obj:`graph_tool.PropertyMap`): Items that
+            are emerging as calculated by label_item_emergence.
+    Returns:
+        item_recombination_count (:obj:`graph_tool.PropertyMap`): Property map
+            with values representing the number of recombining items in a
+            vertex.
+        item_recombination_item (:obj:`graph_tool.PropertyMap`): Property map
+            with a list of recombining items for each vertex.
+        item_reconduction_count (:obj:`graph_tool.PropertyMap`): Property map 
+            with values representing the number of reconducting items in a
+            vertex.
+            
+        item_reconduction_item (:obj:`graph_tool.PropertyMap`): Property map
+            with a list of reconducting items for each vertex.
+    """
+    item_reconduction_count = g.new_vertex_property('int')
+    item_reconduction_item = g.new_vertex_property('vector<int>')
+    
+    item_recombination_count = g.new_vertex_property('int')
+    item_recombination_item = g.new_vertex_property('vector<int>')
+    
+    vertex_parents = {}
+    vertex_predecessors = {}
+    
+    for term, vertices in reverse_mapping(g).items():
+        for v in vertices:
+            if term not in item_emergence_item_prop[v]:
+                if v not in vertex_parents:
+                    dist_map, pred_map, pred_visited = shortest_distance(
+                        g,
+                        source=v,
+                        pred_map=True,
+                        return_reached=True,
+                    )
+                    parents = set([g.vertex(p) for p in pred_visited])
+                    vertex_parents[v] = parents
+                else:
+                    parents = vertex_parents[v]
+
+                if v not in vertex_predecessors:
+                    label = g.vp['label'][v]
+                    predecessors = set([p for p in vertices if g.vp['label'][p] < label])
+                    vertex_predecessors[v] = predecessors
+                else:
+                    predecessors = vertex_predecessors[v]
+
+                overlap = predecessors.intersection(parents)
+                n_overlap = len(overlap)
+
+                if n_overlap > 0:
+                    item_reconduction_item[v].append(term)
+                    item_reconduction_count[v] += 1
+                elif n_overlap == 0:
+                    item_recombination_item[v].append(term)
+                    item_recombination_count[v] += 1
+    return (
+        item_recombination_count, 
+        item_recombination_item, 
+        item_reconduction_count, 
+        item_reconduction_item
+    )
+
+def reverse_mapping(g):
+    """_reverse_mapping
+    Returns the reverse mapping of items to vertices for the graph. If it
+    does not exist, it is created.
+
+    Returns:
+        self.reverse_mapping (dict): A mapping of community items to sets
+            of vertices.
+    """
+    if not hasattr(g, 'reverse_mapping'):
+        reverse_mapping = defaultdict(set)
+
+        for v in g.vertices():
+            items = g.vp['item'][v]
+            for item in items:
+                reverse_mapping[item].add(v)
+        g.reverse_mapping = reverse_mapping
+
+    return g.reverse_mapping
 
 def find_links(args):
     """find_links
@@ -385,7 +505,7 @@ class PhylomemeticGraph(Graph):
             community_sets_filt.append(cfsilt)
             community_sets_lengths.append(len(cfsilt))
             element_community_mappings.append(
-                reverse_mapping(cfsilt)
+                reverse_index_communities(cfsilt)
                 )
 
         community_vertex_maps = []
