@@ -20,6 +20,7 @@ from rhodonite.tabular import vertices_to_dataframe
 
 import time
 
+logger = logging.getLogger(__name__)
 
 def label_ages(g):
     """label_ages
@@ -534,6 +535,7 @@ class PhylomemeticGraph(Graph):
         phylomemetic_links = []
         # find direct parents
         for i, (cps, cfs) in enumerate(window(community_sets, 2)):
+            logger.info(f'Processing {i+1} of {len(community_sets)-1} periods')
             if type(chunksize) == float:
                 n_processes = len(cfs)
                 chunksize_i = int(np.ceil(n_processes * chunksize))
