@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import pandas
+import math
 import os
 
 from collections import defaultdict
@@ -391,7 +392,7 @@ def find_links(args):
             single_jaccard_index is the individual Jaccard similarity between
             each potential parent and the child.
     """
-    cf, cfi, cps, pos, cpm, mapping, binarizer, parent_limit, threshold = args
+    cf, cfi, cps, pos, mapping, parent_limit = args
 
     start_p, end_p = pos
     start_f = end_p
@@ -399,47 +400,49 @@ def find_links(args):
     possible_parents = []
     cp_indexes = []
     for element in cf:
-        element_matches = mapping[element]
+        element_matches = list(mapping[element])
         if len(element_matches) == 0:
             continue
         else:
-            cp_matches = [em for em in element_matches]
-            match_matrix = cpm[cp_matches, :]
-            cf_matrix = binarizer.transform(
-                    [cf for _ in range(match_matrix.shape[0])]
-                    )
-            j = jaccard_similarity(cf_matrix, match_matrix)
-
-            if np.max(j) == 1:
-                direct_parent = np.nonzero(j == 1)[0][0]
-                parent_cp = cp_matches[direct_parent]
+            cp_matches = [cps[i] for i in element_matches]
+            j = [jaccard_similarity_set(cp, cf) for cp in cp_matches]
+#             cp_matches = [em for em in element_matches]
+#             match_matrix = cpm[cp_matches, :]
+#             cf_matrix = binarizer.transform(
+#                     [cf for _ in range(match_matrix.shape[0])]
+#                     )
+#             j = jaccard_similarity(cf_matrix, match_matrix)
+            if math.isclose(np.max(j), 1):
+                direct_parent = np.nonzero([math.isclose(ji, 1) for ji in j])[0][0]
+                parent_cp = element_matches[direct_parent]
                 links.append(
                        ((cfi + start_f, parent_cp + start_p), 1, 1)
                         )
                 return links
 
-            thresh = np.percentile(j, threshold)
-            high_j = np.nonzero(j >= thresh)[0]
-            close_matches = [cp_matches[i] for i in high_j]
-            possible_parents.append(close_matches)
+#             thresh = np.percentile(j, threshold)
+#             high_j = np.nonzero(j >= thresh)[0]
+            close_matches = np.nonzero(j == np.max(j))[0]
+            close_match_indexes = [element_matches[i] for i in close_matches]
+            possible_parents += close_match_indexes
     
-    cp_indexes = sorted(set(flatten(possible_parents)))
+    cp_indexes = set(possible_parents)
      
     if len(cp_indexes) > 0:
-        cp_thresh = [cps[i] for i in cp_indexes]
+#         cp_thresh = [cps[i] for i in cp_indexes]
         cp_union_indices = clique_unions(cp_indexes, parent_limit)
 
         cp_union_vertices = []
         for cui in cp_union_indices:
             cuv = set(flatten([cps[i] for i in cui]))
             cp_union_vertices.append(cuv)
-
-        cp_union_matrix = binarizer.transform(cp_union_vertices) 
-        cf_matrix = binarizer.transform(
-                [cf for _ in range(cp_union_matrix.shape[0])]
-                )
-        j = jaccard_similarity(cf_matrix, cp_union_matrix)
-        cp_union_j_mapping = {k[0]: v[0, 0] for k, v in zip(cp_union_indices, j) if len(k) == 1}
+        j = [jaccard_similarity_set(cpu, cf) for cpu in cp_union_vertices]
+#         cp_union_matrix = binarizer.transform(cp_union_vertices) 
+#         cf_matrix = binarizer.transform(
+#                 [cf for _ in range(cp_union_matrix.shape[0])]
+#                 )
+#         j = jaccard_similarity(cf_matrix, cp_union_matrix)
+        cp_union_j_mapping = {k[0]: v for k, v in zip(cp_union_indices, j) if len(k) == 1}
         j_max = np.max(j)
         parent_clique_indices = np.nonzero(j == j_max)[0]
         if len(parent_clique_indices) > 0:
@@ -524,13 +527,13 @@ class PhylomemeticGraph(Graph):
 
         vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
         len_vocab = len(vocab_all)
-        binarizer_all = MultiLabelBinarizer(
-                classes=vocab_all,
-                sparse_output=True)
-        binarizer_all.fit(range(0, len_vocab))
+#        binarizer_all = MultiLabelBinarizer(
+#                classes=vocab_all,
+#                sparse_output=True)
+#        binarizer_all.fit(range(0, len_vocab))
 
-        community_matrices = [binarizer_all.transform(c)
-                for c in community_sets]
+#        community_matrices = [binarizer_all.transform(c)
+#                for c in community_sets]
  
         phylomemetic_links = []
         # find direct parents
@@ -543,7 +546,7 @@ class PhylomemeticGraph(Graph):
                 chunksize_i = chunksize
 
             n_cf = len(cfs)
-            cp_matrix = binarizer_all.transform(cps)
+#            cp_matrix = binarizer_all.transform(cps)
             
             with Pool(workers) as pool:
                 phylomemetic_links.append(
@@ -554,12 +557,12 @@ class PhylomemeticGraph(Graph):
                                 range(0, len(cfs)),
                                 repeat(cps, n_cf),
                                 repeat(community_sets_pos[i], n_cf),
-                                repeat(community_matrices[i], n_cf),
+#                                repeat(community_matrices[i], n_cf),
                                 repeat(element_community_mappings[i], n_cf),
-                                repeat(binarizer_all, n_cf),
+#                                repeat(binarizer_all, n_cf),
 #                                 repeat(delta_0, n_cf),
                                 repeat(parent_limit, n_cf),
-                                repeat(match_threshold, n_cf),
+#                                repeat(match_threshold, n_cf),
                                 ),
                             chunksize=chunksize_i,
                             )
