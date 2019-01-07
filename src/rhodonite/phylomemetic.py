@@ -406,12 +406,6 @@ def find_links(args):
         else:
             cp_matches = [cps[i] for i in element_matches]
             j = [jaccard_similarity_set(cp, cf) for cp in cp_matches]
-#             cp_matches = [em for em in element_matches]
-#             match_matrix = cpm[cp_matches, :]
-#             cf_matrix = binarizer.transform(
-#                     [cf for _ in range(match_matrix.shape[0])]
-#                     )
-#             j = jaccard_similarity(cf_matrix, match_matrix)
             if math.isclose(np.max(j), 1):
                 direct_parent = np.nonzero([math.isclose(ji, 1) for ji in j])[0][0]
                 parent_cp = element_matches[direct_parent]
@@ -420,8 +414,6 @@ def find_links(args):
                         )
                 return links
 
-#             thresh = np.percentile(j, threshold)
-#             high_j = np.nonzero(j >= thresh)[0]
             close_matches = np.nonzero(j == np.max(j))[0]
             close_match_indexes = [element_matches[i] for i in close_matches]
             possible_parents += close_match_indexes
@@ -429,7 +421,6 @@ def find_links(args):
     cp_indexes = set(possible_parents)
      
     if len(cp_indexes) > 0:
-#         cp_thresh = [cps[i] for i in cp_indexes]
         cp_union_indices = clique_unions(cp_indexes, parent_limit)
 
         cp_union_vertices = []
@@ -437,11 +428,6 @@ def find_links(args):
             cuv = set(flatten([cps[i] for i in cui]))
             cp_union_vertices.append(cuv)
         j = [jaccard_similarity_set(cpu, cf) for cpu in cp_union_vertices]
-#         cp_union_matrix = binarizer.transform(cp_union_vertices) 
-#         cf_matrix = binarizer.transform(
-#                 [cf for _ in range(cp_union_matrix.shape[0])]
-#                 )
-#         j = jaccard_similarity(cf_matrix, cp_union_matrix)
         cp_union_j_mapping = {k[0]: v for k, v in zip(cp_union_indices, j) if len(k) == 1}
         j_max = np.max(j)
         parent_clique_indices = np.nonzero(j == j_max)[0]
