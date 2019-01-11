@@ -71,7 +71,7 @@ def label_ages(g):
     
     return age_vp
 
-def community_density(community, g):
+def community_density(community, g, fill=0):
     """community_density
     Calculate the density of a clique based on the number of occurrences
     and coocurrences of the terms within it. Based on Callon et al. 1991.
@@ -81,6 +81,8 @@ def community_density(community, g):
             a single clique.
         g (:obj:`Graph`): The coocurrence graph from which the clique
             originated
+        fill (float): A number to fill in for the cooccurrence value if none
+            exists.
     Returns:
         density (float): The density of the clique.
     """
@@ -91,7 +93,11 @@ def community_density(community, g):
         o_i = g.vp['occurrence'][i]
         o_j = g.vp['occurrence'][j]
         o.append(o_i * o_j)
-        co.append(g.ep['cooccurrence'][(i, j)])
+        edge = g.edge(i, j)
+        if edge is not None:
+            co.append(g.ep['cooccurrence'][edge])
+        else:
+            co.append(fill)
     density = 1 / card * np.sum(np.divide(np.square(co), o))
     return density
 
