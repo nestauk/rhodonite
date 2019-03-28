@@ -46,8 +46,11 @@
 
 .. end-badges
 
-A Python package for the creation and study of coocurrence networks.
+Welcome to the Rhodonite repository!
 
+Rhodonite is a Python package made for working with cooccurrence data in graph 
+form. It lets you create coccurrence networks, study them and use them to 
+perform interesting analysis wherever you have groups of entities.
 
 Installation
 ============
@@ -60,12 +63,12 @@ clone this repository and inside the main root directory, run
     pip install -e .
 
 
-Requirements
+Requirements 
 ============
 
 This package is built on ``graph-tool``. Compiling this can take a long time
 and 4GB of memory. Pre-compiled versions are available. If you are using Conda
-as your package manager then instructions for installation are available
+as your package manager then instructions for installation are available from the links below:
 
 - Linux_
 - OSX_
