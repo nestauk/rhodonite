@@ -1,4 +1,5 @@
 .. image:: ./img/rhodonite_500_77.png
+    :width: 200 px
 
 .. start-badges
 
