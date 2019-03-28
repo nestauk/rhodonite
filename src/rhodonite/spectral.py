@@ -77,3 +77,14 @@ def cooccurrences(g):
         t = g.tokenidx2vertex[t]
         cooccurrences[g.edge(s, t)] = co
     return cooccurrences
+
+def conditional_probability(g):
+    if g.is_directed():
+        conditional_probability_prop = g.new_edge_property('float')
+        for e in g.edges():
+            co = g.ep['cooccurrence'][e]
+            o = g.vp['occurrence'][e.target()]
+            cp = co / o
+            conditional_probability_prop[e] = cp
+        return conditional_probability_prop
+
