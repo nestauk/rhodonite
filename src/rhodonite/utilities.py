@@ -235,3 +235,23 @@ def window(seq, n=3):
         result = result[1:] + (elem,)
         yield result
 
+def is_subset(needle,haystack):
+    """ Check if needle is ordered subset of haystack in O(n)  """
+ 
+    if len(haystack) < len(needle): return False
+ 
+    index = 0
+    for element in needle:
+        try:
+            index = haystack.index(element, index) + 1
+        except ValueError:
+            return False
+    else:
+        return True
+
+def filter_subsets(lists):
+    """ Given list of lists, return new list of lists without subsets  """
+    for needle in lists:
+        if not any(is_subset(needle, haystack) for haystack in lists
+            if needle is not haystack):
+            yield needle
