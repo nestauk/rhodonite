@@ -120,7 +120,7 @@ class CooccurrenceGraph(Graph):
         return self
     
     def generate_cooccurrencences(self, sequences):
-        co_pairs = [combinations(sorted(s), 2)) for s in sequences]
+        co_pairs = [itertools.combinations(sorted(s), 2) for s in sequences]
         co = Counter(flatten(co_pairs))
         return co
 
