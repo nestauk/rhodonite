@@ -84,19 +84,11 @@ class CooccurrenceGraph(Graph):
         occurrences_vp = self.occurrences(sequences, dictionary)
         self.vertex_properties['occurrence'] = occurrences_vp
 
-#         cooccurrences, distances = self.seqs2cooccurrences(
-#                 sequences, window_size)
-
         cooccurrences = self.generate_cooccurrences(sequences)
 
         if self.is_directed():
             cooccurrences.update({k[::-1]: v for k, v in cooccurrences.items()})
-#             distances.update({k[::-1]: v for k, v in distances.items()})
 
-#         if distance_agg is not None:
-#             distances_ep = self.new_edge_property('float')
-#         else:
-#             distances_ep = self.new_edge_property('vector<int>')
         cooccurrences_ep = self.new_edge_property('int')
         self.ep['cooccurrence'] = cooccurrences_ep
 
@@ -104,21 +96,6 @@ class CooccurrenceGraph(Graph):
                 ((k[0], k[1], v) for k, v in cooccurrences.items()),
                 eprops=[cooccurrences_ep]
                 )
-#             if distance_agg is not None:
-#                 distances_ep[co_pair] = distance_agg(distances[co_pair])
-#             else:
-#                 distances_ep[co_pair] = numpy.array(distances[co_pair])
-        
-#         self.ep['cooccurrence'] = cooccurrences_ep
-#         self.ep['distance'] = distances_ep
-
-#         isolated_vp = self.new_vertex_property('bool')
-#         for v in self.vertices():
-#             if v.out_degree() == 0:
-#                 isolated_vp[v] = True
-#             else:
-#                 isolated_vp[v] = False
-#         self.vp['isolated'] = isolated_vp
 
         return self
     

@@ -235,3 +235,22 @@ def window(seq, n=3):
         result = result[1:] + (elem,)
         yield result
 
+def label_isolated(g):
+    """label_isolated
+    Creates a vertex property map with True if a node has no neighbours,
+    else False.
+
+    Args:
+        g (graph_tool.Graph): A graph.
+
+    Returns:
+        isolated_vp (graph_tool.PropertyMap): Property map labelling isolated
+            vertices.
+    """"
+    isolated_vp = g.new_vertex_property('bool')
+    for v in g.vertices():
+        if v.out_degree() == 0:
+            isolated_vp[v] = True
+        else:
+            isolated_vp[v] = False
+    return isolated_vp
