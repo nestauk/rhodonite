@@ -51,8 +51,8 @@ class CooccurrenceGraph(Graph):
         """
         pass
 
-    def from_sequences(self, sequences, dictionary, window_size=2,
-            distance_agg=None):
+    def from_sequences(self, sequences, dictionary, label_items=True, 
+            item_type='string', distance_agg=None):
         """from_sequences
         Constructs a cooccurrence network from a series of sequences (an
         iterable of iterables), for example, a corpus of tokenized documents.
@@ -71,55 +71,38 @@ class CooccurrenceGraph(Graph):
             self
         """
         num_items = len(dictionary.keys())
-        sequences_flat = flatten(sequences)
         self.add_vertex(num_items)
         
-        dict_item_types = sequence_item_types(dictionary.values())
-        items_vp = self.new_vertex_property(dict_item_types)
-        
-        for i, item in dictionary.items():
-            items_vp[i] = item
-        
-        self.vp['item'] = items_vp
+        if label_items:
+            items_vp = self.new_vertex_property(item_type)
+            
+            for i, item in dictionary.items():
+                items_vp[i] = item
+            
+            self.vp['item'] = items_vp
 
         occurrences_vp = self.occurrences(sequences, dictionary)
         self.vertex_properties['occurrence'] = occurrences_vp
 
-        length_shortest_seq = min([len(s) for s in sequences])
- 
-        cooccurrences, distances = self.seqs2cooccurrences(
-                sequences, window_size)
+        cooccurrences = self.generate_cooccurrences(sequences)
 
         if self.is_directed():
             cooccurrences.update({k[::-1]: v for k, v in cooccurrences.items()})
-            distances.update({k[::-1]: v for k, v in distances.items()})
 
-        self.add_edge_list(set(cooccurrences.keys()))
-        if distance_agg is not None:
-            distances_ep = self.new_edge_property('float')
-        else:
-            distances_ep = self.new_edge_property('vector<int>')
         cooccurrences_ep = self.new_edge_property('int')
-
-        for co_pair, cooccurrence in cooccurrences.items():
-            cooccurrences_ep[co_pair] = cooccurrences[co_pair]
-            if distance_agg is not None:
-                distances_ep[co_pair] = distance_agg(distances[co_pair])
-            else:
-                distances_ep[co_pair] = numpy.array(distances[co_pair])
-        
         self.ep['cooccurrence'] = cooccurrences_ep
-        self.ep['distance'] = distances_ep
 
-        isolated_vp = self.new_vertex_property('bool')
-        for v in self.vertices():
-            if v.out_degree() == 0:
-                isolated_vp[v] = True
-            else:
-                isolated_vp[v] = False
-        self.vp['isolated'] = isolated_vp
+        self.add_edge_list(
+                ((k[0], k[1], v) for k, v in cooccurrences.items()),
+                eprops=[cooccurrences_ep]
+                )
 
         return self
+    
+    def generate_cooccurrences(self, sequences):
+        co_pairs = (itertools.combinations(sorted(s), 2) for s in sequences)
+        co = Counter(flatten(co_pairs))
+        return co
 
     def seqs2cooccurrences(self, sequences, window_size):
         """seqs2cooccurrences
@@ -199,9 +182,6 @@ class CooccurrenceGraph(Graph):
         counts = Counter(flatten(sequences))
         o = self.new_vertex_property('int')
         for k in dictionary.keys():
-            if k in counts:
-                o[k] = counts[k]
-            else:
-                o[k] = 0
+            o[k] = counts.get(k, 0)
         return o
 
