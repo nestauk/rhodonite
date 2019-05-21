@@ -246,7 +246,7 @@ def label_isolated(g):
     Returns:
         isolated_vp (graph_tool.PropertyMap): Property map labelling isolated
             vertices.
-    """"
+    """
     isolated_vp = g.new_vertex_property('bool')
     for v in g.vertices():
         if v.out_degree() == 0:
