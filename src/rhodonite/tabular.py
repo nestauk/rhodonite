@@ -1,4 +1,4 @@
-import pandas
+import pandas as pd
 
 
 def vertices_to_dataframe(g, keys=None):
