@@ -27,7 +27,7 @@ def vertices_to_dataframe(g, keys=None):
                 vertex_df[k] = vertex_df[k].astype(float)
     return vertex_df
 
-def edges_to_dataframe(g, keys=None):
+def edges_to_dataframe(g, sort=None):
     """edges_to_dataframe
     Transforms a graph's edges and their properties into a tabular format.
 
@@ -42,14 +42,18 @@ def edges_to_dataframe(g, keys=None):
             dataframe will contain a column for the source vertices and another
             for the target vertices.
     """
-    edge_df = pd.DataFrame(list(g.edges()), columns=['s', 't'], dtype='int')    
+    edge_df = pd.DataFrame(list(g.edges()), columns=['s', 't'], dtype='int')
+    edge_df = pd.DataFrame(g.get_edges(), columns=['s', 't', 'e_index'], dtype='int')
+    indices = edge_df['e_index'].values
     for k, ep in g.ep.items():    
         vt = ep.value_type()
         if ('vector' not in vt) & ('string' not in vt) & ('object' not in vt):
             if ('int' in vt) | ('bool' in vt):
-                edge_df[k] = ep.get_array()
+                edge_df[k] = ep.get_array()[indices]
                 edge_df[k] = edge_df[k].astype(int)
             elif 'double' in vt:
-                edge_df[k] = ep.get_array()
+                edge_df[k] = ep.get_array()[indices]
                 edge_df[k] = edge_df[k].astype(float)
+    if sort:
+        edge_df.sort_values(sort, inplace=True)
     return edge_df
