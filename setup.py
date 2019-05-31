@@ -34,9 +34,9 @@ setup(
     author='George Richardson',
     author_email='george.richardson@nesta.org.uk',
     url='https://github.com/georgerichardson/rhodonite',
-    packages=find_packages('src'),
-    package_dir={'': 'src'},
-    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    packages=find_packages('rhodonite'),
+    package_dir={'': 'rhodonite'},
+    py_modules=[splitext(basename(path))[0] for path in glob('rhodonite/*.py')],
     include_package_data=True,
     zip_safe=False,
     classifiers=[
