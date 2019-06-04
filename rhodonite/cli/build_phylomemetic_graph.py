@@ -22,7 +22,7 @@ from rhodonite.phylomemetic import PhylomemeticGraph
             )
         )
 @click.option(
-        '--chunksize', '-c', default='auto'
+        '--chunksize', '-c', default='auto',
         help='Maximum number of communities for each worker to work on.'
         )
 def from_communities(input, output, min_clique_size, parent_limit, 
