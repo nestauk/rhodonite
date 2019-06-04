@@ -11,7 +11,7 @@ from os.path import dirname
 from os.path import join
 from os.path import splitext
 
-from setuptools import find_packages
+from setuptools import find_packages, find_namespace_packages
 from setuptools import setup
 
 
@@ -26,7 +26,7 @@ setup(
     name='rhodonite',
     version='0.1.0',
     license='MIT license',
-    description='A Pythin library for coocurrence networks.',
+    description='A Python library for coocurrence networks.',
     long_description='%s\n%s' % (
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
@@ -34,8 +34,7 @@ setup(
     author='George Richardson',
     author_email='george.richardson@nesta.org.uk',
     url='https://github.com/georgerichardson/rhodonite',
-    packages=find_packages('rhodonite'),
-    package_dir={'': 'rhodonite'},
+    packages=find_namespace_packages(),
     py_modules=[splitext(basename(path))[0] for path in glob('rhodonite/*.py')],
     include_package_data=True,
     zip_safe=False,
