@@ -6,7 +6,6 @@ from collections import Counter, defaultdict
 from gensim.corpora import Dictionary
 from graph_tool.all import Graph
 
-from rhodonite.base import CooccurrenceGraph
 from rhodonite.utilities import window, flatten, sequence_item_types
 
 
