@@ -13,7 +13,7 @@ from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool, cpu_count
 
 from rhodonite.utilities import (window, flatten, clear_graph, 
-        get_aggregate_vp, reverse_index_communities)
+        get_aggregate_vp, reverse_index_communities, clique_unions)
 from rhodonite.similarity import jaccard_similarity, jaccard_similarity_set
 from rhodonite.tabular import vertices_to_dataframe
 
@@ -478,8 +478,8 @@ class PhylomemeticGraph(Graph):
             workers (int): The number of CPUs to use.
             parent_limit (int): The maximum combination size for unions of 
                 potential parental candidates.
-            chunksize (int or float): The number of communities for each CPU to
-                process with in each process.
+            chunksize (int or str): The number of communities for each CPU to
+                process with in each process. Default is 'auto'.
 
         Returns:
             self
@@ -521,10 +521,7 @@ class PhylomemeticGraph(Graph):
         for i, (cps, cfs) in enumerate(window(community_sets, 2)):
             n_cf = len(cfs)
             logger.info(f'Processing {i+1} of {len(community_sets)-1} periods')
-            if type(chunksize) == float:
-                n_processes = n_cf
-                chunksize_i = int(np.ceil(n_processes * chunksize))
-            elif chunksize == 'auto':
+            if chunksize == 'auto':
                 chunksize_i = int(np.ceil((1 / workers) * n_cf))
             else:
                 chunksize_i = chunksize
@@ -567,7 +564,6 @@ class PhylomemeticGraph(Graph):
         community_labels = self.new_vertex_property('int')
         community_items = self.new_vertex_property('vector<int>')
 
-        for i, ((start, end), communities) in enumerate(
                 zip(community_sets_pos, community_sets)):
             vertices = range(start, end)
             for vertex, c in zip(vertices, communities):

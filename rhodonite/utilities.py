@@ -254,3 +254,19 @@ def label_isolated(g):
         else:
             isolated_vp[v] = False
     return isolated_vp
+
+def clique_unions(clique_indices, limit):
+    """clique_unions
+    Create combinations of cliques up to limit.
+    Args:
+        clique_indices (:obj:`iter` of int): List of indices of cliques.
+        limit (int): The maximum number of cliques in each union.
+    Returns:
+        combos (:obj:`iter` of :obj:`iter` of int): Tuples of clique
+            combinations.
+    """
+    combos = []
+    for l in range(1, limit + 1):
+        for combo in itertools.combinations(clique_indices, l):
+            combos.append(tuple(combo))
+    return combos
