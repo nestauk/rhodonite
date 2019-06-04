@@ -1,5 +1,6 @@
 import click
 import pickle
+import os
 
 from rhodonite.phylomemetic import PhylomemeticGraph
 
@@ -7,25 +8,25 @@ from rhodonite.phylomemetic import PhylomemeticGraph
 @click.option('--input', '-i', help='Input file of communities.')
 @click.option('--output', '-o', help='Output file location. End with .gt suffix.')
 @click.option(
-        '--parent_limit', '-p',
+        '--parent_limit', '-p', type=int,
         help='Maximum number of possible parents to consider for each community.'
         )
 @click.option(
-        '--min_clique_size', '-m', 
+        '--min_clique_size', '-m', type=int, 
         help='Minimum number of elements for a community to be included.'
         )
 @click.option(
-        '--workers', '-w', default='auto',
+        '--workers', '-w', default='auto', type=str,
         help=(
             'Number of processes to use. More workers means faster calculation, '
             'but higher memory overhead.'
             )
         )
 @click.option(
-        '--chunksize', '-c', default='auto',
+        '--chunksize', '-c', default='auto', type=str,
         help='Maximum number of communities for each worker to work on.'
         )
-def from_communities(input, output, min_clique_size, parent_limit, 
+def build(input, output, min_clique_size, parent_limit, 
         workers, chunksize):
     '''from_communities
     Creates and saves a phylomemetic graph from an input of temporal communities.
@@ -45,11 +46,17 @@ def from_communities(input, output, min_clique_size, parent_limit,
     with open(input, 'rb') as f:
         communities = pickle.load(f)
     
-    save_dir = os.path(*input.split(os.sep)[:-1])
+    if chunksize.isnumeric():
+        chunksize = int(chunksize)
+    if workers.isnumeric():
+        workers = int(workers)
+
+    save_dir = os.path.join(*input.split(os.sep)[:-1])
     if os.path.isdir(save_dir):
         pg = PhylomemeticGraph()
         pg.from_communities(
-                communities, 
+                community_sets=list(communities.values()),
+                labels=list(communities.keys()),
                 min_clique_size=min_clique_size, 
                 parent_limit=parent_limit,
                 workers=workers,
@@ -60,4 +67,4 @@ def from_communities(input, output, min_clique_size, parent_limit,
         click.echo('Output directory does not exist.')
 
 if __name__ == '__main__':
-    from_communities()
+    build()
