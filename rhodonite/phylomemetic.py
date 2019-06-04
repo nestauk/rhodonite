@@ -465,9 +465,8 @@ class PhylomemeticGraph(Graph):
         """
         super().__init__(*args, **kwargs)
 
-    def from_communities(self, community_sets, labels=None,
-            min_clique_size=None, parent_limit=2, match_threshold=95,
-            workers='auto', chunksize=0.2):
+    def from_communities(self, community_sets, labels=None, min_clique_size=None,
+            parent_limit=2, workers='auto', chunksize='auto'):
         """from_communities
         Builds a phylomemetic graph from a set of communities.
 
@@ -519,26 +518,18 @@ class PhylomemeticGraph(Graph):
 
         vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
         len_vocab = len(vocab_all)
-#        binarizer_all = MultiLabelBinarizer(
-#                classes=vocab_all,
-#                sparse_output=True)
-#        binarizer_all.fit(range(0, len_vocab))
-
-#        community_matrices = [binarizer_all.transform(c)
-#                for c in community_sets]
  
         phylomemetic_links = []
-        # find direct parents
         for i, (cps, cfs) in enumerate(window(community_sets, 2)):
+            n_cf = len(cfs)
             logger.info(f'Processing {i+1} of {len(community_sets)-1} periods')
             if type(chunksize) == float:
-                n_processes = len(cfs)
+                n_processes = n_cf
                 chunksize_i = int(np.ceil(n_processes * chunksize))
+            elif chunksize == 'auto':
+                chunksize_i = int(np.ceil((1 / workers) * n_cf))
             else:
                 chunksize_i = chunksize
-
-            n_cf = len(cfs)
-#            cp_matrix = binarizer_all.transform(cps)
             
             with Pool(workers) as pool:
                 phylomemetic_links.append(
@@ -549,12 +540,8 @@ class PhylomemeticGraph(Graph):
                                 range(0, len(cfs)),
                                 repeat(cps, n_cf),
                                 repeat(community_sets_pos[i], n_cf),
-#                                repeat(community_matrices[i], n_cf),
                                 repeat(element_community_mappings[i], n_cf),
-#                                repeat(binarizer_all, n_cf),
-#                                 repeat(delta_0, n_cf),
                                 repeat(parent_limit, n_cf),
-#                                repeat(match_threshold, n_cf),
                                 ),
                             chunksize=chunksize_i,
                             )
