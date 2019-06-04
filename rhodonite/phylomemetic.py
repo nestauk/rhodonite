@@ -14,8 +14,6 @@ from multiprocessing import Pool, cpu_count
 
 from rhodonite.utilities import (window, flatten, clear_graph, 
         get_aggregate_vp, reverse_index_communities)
-from rhodonite.cliques import (filter_subsets, clique_unions,
-        load_cliques_cfinder)
 from rhodonite.similarity import jaccard_similarity, jaccard_similarity_set
 from rhodonite.tabular import vertices_to_dataframe
 
