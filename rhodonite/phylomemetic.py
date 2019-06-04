@@ -414,7 +414,7 @@ def find_links(args):
                 direct_parent = np.nonzero([math.isclose(ji, 1) for ji in j])[0][0]
                 parent_cp = element_matches[direct_parent]
                 links.append(
-                       ((cfi + start_f, parent_cp + start_p), 1, 1)
+                       (cfi + start_f, parent_cp + start_p, 1, 1)
                         )
                 return links
 
@@ -443,12 +443,11 @@ def find_links(args):
 
             for pc in parent_cliques:
                 link = (
-                        (cfi + start_f, pc + start_p),
+                        cfi + start_f, 
+                        pc + start_p,
                         j_max,
                         cp_union_j_mapping[pc]
                     )
-                if len(link) == 2:
-                    print(link)
                 links.append(link)
             return links
 
@@ -546,24 +545,18 @@ class PhylomemeticGraph(Graph):
         if len(list(self.vertices())) == 0:
             self.add_vertex(n_communities)
 
-        group_link_strengths = self.new_edge_property('float')
-        single_link_strengths = self.new_edge_property('float')
-        for pl in phylomemetic_links:
-            pl = flatten([p for p in pl if p is not None])
-            pl_edges = [p[0] for p in pl]
-            pl_group_weights = [p[1] for p in pl]
-            pl_single_weights = [p[2] for p in pl]
-            self.add_edge_list(set(pl_edges))
-            for e, gw, sw in zip(pl_edges, pl_group_weights, pl_single_weights):
-                group_link_strengths[self.edge(e[0], e[1])] = gw
-                single_link_strengths[self.edge(e[0], e[1])] = sw
+        self.ep['group_link_strength'] = self.new_edge_property('float')
+        self.ep['single_link_strength'] = self.new_edge_property('float')
 
-        self.ep['group_link_strength'] = group_link_strengths
-        self.ep['single_link_strength'] = single_link_strengths
+        phylomemetic_links = flatten(flatten(phylomemetic_links))
+        self.add_edge_list(
+                phylomemetic_links,
+                eprops=[self.ep['group_link_strength'], self.ep['single_link_strength']]
+                )
 
         community_labels = self.new_vertex_property('int')
         community_items = self.new_vertex_property('vector<int>')
-
+        for i, ((start, end), communities) in enumerate(
                 zip(community_sets_pos, community_sets)):
             vertices = range(start, end)
             for vertex, c in zip(vertices, communities):
