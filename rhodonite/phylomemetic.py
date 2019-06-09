@@ -560,7 +560,7 @@ class PhylomemeticGraph(Graph):
                 zip(community_sets_pos, community_sets)):
             vertices = range(start, end)
             for vertex, c in zip(vertices, communities):
-                community_items[vertex] = np.array(c)
+                community_items[vertex] = np.array(list(c))
                 community_labels[vertex] = labels[i]
 
         self.vp['item'] = community_items
