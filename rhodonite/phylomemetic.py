@@ -449,7 +449,7 @@ def find_links(args):
                         cp_union_j_mapping[pc]
                     )
                 links.append(link)
-            return links
+    return links
 
 
 class PhylomemeticGraph(Graph):
