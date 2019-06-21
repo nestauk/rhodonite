@@ -5,7 +5,7 @@ import math
 import os
 
 from collections import defaultdict
-from graph_tool.all import Graph, GraphView
+from graph_tool.all import Graph, GraphView, edge_endpoint_property
 from graph_tool.topology import all_predecessors, shortest_distance
 from itertools import repeat, combinations
 from operator import itemgetter
@@ -69,7 +69,7 @@ def label_ages(g):
     
     return age_vp
 
-def community_density(community, g, fill=0):
+def community_density(community, co_graph, density_prop, fill=0):
     """community_density
     Calculate the density of a clique based on the number of occurrences
     and coocurrences of the terms within it. Based on Callon et al. 1991.
@@ -85,18 +85,27 @@ def community_density(community, g, fill=0):
         density (float): The density of the clique.
     """
     card = len(community)
-    co = []
-    o = []
-    for i, j in combinations(community, 2):
-        o_i = g.vp['occurrence'][i]
-        o_j = g.vp['occurrence'][j]
-        o.append(o_i * o_j)
-        edge = g.edge(i, j)
-        if edge is not None:
-            co.append(g.ep['cooccurrence'][edge])
-        else:
-            co.append(fill)
-    density = 1 / card * np.sum(np.divide(np.square(co), o))
+#     co = []
+#     o = []
+#     densities = []
+    densities = density_prop.a[community]
+    density = 1 / card * np.sum(densities)
+#     for s, t in combinations(community, 2):
+#         edge = co_graph.edge(s, t)
+#         if edge is not None:
+#             densities.append(density_prop[edge])
+#         else:
+#             densities.append(fill)
+#         o_i = g.vp['occurrence'][s]
+#         o_j = g.vp['occurrence'][t]
+#         o.append(o_s * o_t)
+#         edge = g.edge(s, t)
+#         if edge is not None:
+#             co.append(g.ep['cooccurrence'][edge])
+#         else:
+#             co.append(fill)
+#     density = 1 / card * np.sum(np.divide(np.square(co), o))
+#     density = 1 / card * np.sum(densities)
     return density
 
 def label_density(g, cooccurrence_graphs, norm=None):
@@ -117,17 +126,27 @@ def label_density(g, cooccurrence_graphs, norm=None):
     """
     community_densities = g.new_vertex_property('float')
 
-    g_df = vertices_to_dataframe(g)
-    time_steps = sorted(g_df['label'].unique())
-    label_groups = g_df.groupby('label')
+    time_steps = sorted(np.unique(g.vp['label'].a))
+    
+    co_time_step = None
+    for v in g.vertices():
+        ts = g.vp['label'][v]
+        if ts != co_time_step:
+            co_time_step = ts
+            co = cooccurrence_graphs[ts]
+            o_source = edge_endpoint_property(co, co.vp['occurrence'], 'source') 
+            t_source = edge_endpoint_property(co, co.vp['occurrence'], 'target')
 
-    for (_, group), co_graph in zip(label_groups, cooccurrence_graphs):
-        densities = [community_density(c, co_graph) for c in group['item']]
-        if norm is not None:
-            densities = np.array(densities) / norm(densities)
-        for v, d in zip(group['vertex'], densities):
-            community_densities[v] = d
-
+            density_prop = co.new_edge_property('float')
+            density_prop.a = (
+                    np.square(co.ep['cooccurrence'].a) / 
+                    (o_source.a * t_source.a)
+                    )
+        community_densities[v] = community_density(
+                g.vp['item'][v], 
+                co,
+                density_prop
+                )
     return community_densities
 
 def label_emergence(g):
@@ -208,8 +227,7 @@ def label_cross_pollination(g, merging_prop, agg=np.mean):
             median.
     """
     cross_poll_prop = g.new_vertex_property('float')
-    g_merging = GraphView(g, vfilt=lambda v: merging_prop[v] ==  1)
-    parents = []
+    g_merging = GraphView(g, vfilt=merging_prop, skip_efilt=True)
     for v in g_merging.vertices():
         parents = [g.vp['item'][p] for p in g.vertex(v).out_neighbors()]
         jaccard = agg(
