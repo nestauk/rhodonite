@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def vertices_to_dataframe(g, keys=None):
+def vertices_to_dataframe(g, vectors=False, keys=None):
     """vertices_to_dataframe
     Transforms a graph's vertices and their properties into a tabular format.
 
@@ -25,9 +25,11 @@ def vertices_to_dataframe(g, keys=None):
             elif 'double' in vt:
                 vertex_df[k] = vp.get_array()
                 vertex_df[k] = vertex_df[k].astype(float)
+        elif ('vector' in vt) & ('string' not in vt) & (vectors == True):
+            vertex_df[k] = [[i for i in vp[v]] for v in g.vertices()]
     return vertex_df
 
-def edges_to_dataframe(g, sort=None):
+def edges_to_dataframe(g, sort=None, vectors=False):
     """edges_to_dataframe
     Transforms a graph's edges and their properties into a tabular format.
 
@@ -54,6 +56,8 @@ def edges_to_dataframe(g, sort=None):
             elif 'double' in vt:
                 edge_df[k] = ep.get_array()[indices]
                 edge_df[k] = edge_df[k].astype(float)
+        elif ('vector' in vt) & ('string' not in vt) & (vectors == True):
+            edge_df[k] = [[i for i in vp[v]] for v in g.vertices()]
     if sort:
         edge_df.sort_values(sort, inplace=True)
     return edge_df
