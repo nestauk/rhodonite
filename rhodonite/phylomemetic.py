@@ -60,27 +60,8 @@ def community_density(community, co_graph, density_prop, fill=0):
         density (float): The density of the clique.
     """
     card = len(community)
-#     co = []
-#     o = []
-#     densities = []
     densities = density_prop.a[community]
     density = 1 / card * np.sum(densities)
-#     for s, t in combinations(community, 2):
-#         edge = co_graph.edge(s, t)
-#         if edge is not None:
-#             densities.append(density_prop[edge])
-#         else:
-#             densities.append(fill)
-#         o_i = g.vp['occurrence'][s]
-#         o_j = g.vp['occurrence'][t]
-#         o.append(o_s * o_t)
-#         edge = g.edge(s, t)
-#         if edge is not None:
-#             co.append(g.ep['cooccurrence'][edge])
-#         else:
-#             co.append(fill)
-#     density = 1 / card * np.sum(np.divide(np.square(co), o))
-#     density = 1 / card * np.sum(densities)
     return density
 
 def label_density(g, cooccurrence_graphs, norm=None):
@@ -110,12 +91,12 @@ def label_density(g, cooccurrence_graphs, norm=None):
             co_time_step = ts
             co = cooccurrence_graphs[ts]
             o_source = edge_endpoint_property(co, co.vp['occurrence'], 'source') 
-            t_source = edge_endpoint_property(co, co.vp['occurrence'], 'target')
+            o_target = edge_endpoint_property(co, co.vp['occurrence'], 'target')
 
             density_prop = co.new_edge_property('float')
             density_prop.a = (
                     np.square(co.ep['cooccurrence'].a) / 
-                    (o_source.a * t_source.a)
+                    (o_source.a * o_target.a)
                     )
         community_densities[v] = community_density(
                 g.vp['item'][v], 
@@ -130,10 +111,10 @@ def label_emergence(g):
     ephemeral, emerging, steady, or declining.
 
     The categories are represented as integers with the following mapping:
-        {'ephemeral': 0,
-         'emerging': 1,
-         'steady': 2,
-         'declining': 3}
+        {0: 'ephemeral',
+         1: 'emerging',
+         2: 'steady',
+         3: 'declining'}
          
     Args:
         g (:obj:`Graph`): A graph.
@@ -175,18 +156,10 @@ def label_special_events(g):
     branching = g.new_vertex_property('bool')
     merging = g.new_vertex_property('bool')
     for v in g.vertices():
-        if (v.out_degree() < 2) & (v.in_degree() >= 2):
-            # branching
-            branching[v] = True
-            merging[v] = False
-        elif (v.out_degree() >= 2) & (v.in_degree() < 2):
-            # merging
-            branching[v] = False
+        if v.out_degree() >= 2:
             merging[v] = True
-        elif (v.out_degree() >= 2) & (v.in_degree() >= 2):
-            # branching and merging
+        if v.in_degree() >= 2:
             branching[v] = True
-            merging[v] = True
     return branching, merging
 
 def label_cross_pollination(g, merging_prop, agg=np.mean):
