@@ -34,39 +34,14 @@ def label_ages(g):
         age_vp (:obj:`PropertyMap(`): A property map containing
             the age of each vertex.
     """
-
-    # get all vertices with age 0 in dictionary
-    ages = {}
+    age_vp = g.new_vertex_property('int')
     for v in g.vertices():
         if v.out_degree() == 0:
-            ages[v] = 0
-
-    # find youngest in-neighbour of each node
-    # if it is in the age dict then get the new age by adding the difference
-    # else append back on to the list to try again
-    vertices = list(g.vertices())
-    for v in vertices:
-        if v in ages:
-            continue
+            age_vp[v] = 0
         else:
-            year_v = g.vp['label'][v]
-
-            predecessors = list(v.out_neighbors())
-            years = [g.vp['label'][p] for p in predecessors]
-            min_i = np.argmin(years)
-            min_neighbor = predecessors[min_i]
-            year_neighbor = years[min_i]
-        if min_neighbor in ages:
-            year_parent = ages[min_neighbor]
-            ages[v] = ages[min_neighbor] + (year_v - year_neighbor)
-        else:
-            vertices.append(v)
-
-    age_vp = g.new_vertex_property('int')
-
-    for v in g.vertices():
-        age_vp[v] = ages[v]
-    
+            parent_ages = [age_vp[p] for p in v.out_neighbours()]
+            max_age = np.max(parent_ages)
+            age_vp[v] = max_age + 1
     return age_vp
 
 def community_density(community, co_graph, density_prop, fill=0):
