@@ -179,7 +179,7 @@ def label_cross_pollination(g, merging_prop, agg=np.mean):
     for v in g_merging.vertices():
         parents = [g.vp['item'][p] for p in g.vertex(v).out_neighbors()]
         jaccard = agg(
-            [jaccard_similarity_set(list(c[0]), list(c[1]))
+            [1 - jaccard_similarity_set(list(c[0]), list(c[1]))
             for c in combinations(parents, 2)]
         )
         cross_poll_prop[v] = jaccard
@@ -198,12 +198,11 @@ def label_diversification(g, branching_prop, agg=np.mean):
             median.
     """
     diversification_prop = g.new_vertex_property('float')
-    g_branching = GraphView(g, vfilt=lambda v: branching_prop[v] ==  1)
-    parents = []
+    g_branching = GraphView(g, vfilt=branching_prop, skip_efilt=True)
     for v in g_branching.vertices():
         children = [g.vp['item'][c] for c in g.vertex(v).in_neighbors()]
         jaccard = agg(
-            [jaccard_similarity_set(list(c[0]), list(c[1]))
+            [1 - jaccard_similarity_set(list(c[0]), list(c[1]))
             for c in combinations(children, 2)]
         )
         diversification_prop[v] = jaccard
