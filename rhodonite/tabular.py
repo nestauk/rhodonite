@@ -16,17 +16,24 @@ def vertices_to_dataframe(g, vectors=False, keys=None):
             the dataframe will contain a column with the vertex id.
     """
     vertex_df = pd.DataFrame(list(g.vertices()), columns=['v'], dtype='int')
+    filt = g.get_vertex_filter()
+    if filt[0] is not None:
+        filt = filt[0].a > 0
+        filtered = True
+    else:
+        filtered=False
+        filt = np.array([True] * g.num_vertices())
     for k, vp in g.vp.items():
         vt = vp.value_type()
         if ('vector' not in vt) & ('string' not in vt) & ('object' not in vt):
             if ('int' in vt) | ('bool' in vt):
-                vertex_df[k] = vp.get_array()
+                vertex_df[k] = vp.get_array()[filt]
                 vertex_df[k] = vertex_df[k].astype(int)
             elif 'double' in vt:
-                vertex_df[k] = vp.get_array()
+                vertex_df[k] = vp.get_array()[filt]
                 vertex_df[k] = vertex_df[k].astype(float)
         elif ('vector' in vt) & ('string' not in vt) & (vectors == True):
-            vertex_df[k] = [[i for i in vp[v]] for v in g.vertices()]
+            vertex_df[k] = [[i for i in vp[v]] for v, f in zip(g.vertices(), filt) if f]
     return vertex_df
 
 def edges_to_dataframe(g, sort=None, vectors=False):
