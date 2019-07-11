@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 
 def vertices_to_dataframe(g, vectors=False, keys=None):
