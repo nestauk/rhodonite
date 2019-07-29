@@ -304,3 +304,16 @@ def dict_to_edge_prop(g, prop_dict, indices_dict, prop_type='int'):
     indices = list(itemgetter(*prop_dict.keys())(indices_dict))
     eprop.a[indices] = list(prop_dict.values())
     return eprop
+
+def add_dict_edge_list(g, prop_dict, prop_name, prop_type='int'):
+    '''add_dict_edge_list
+
+    Args:
+        g (:obj:`graph_tool.Graph`):
+        prop_dict (:obj:`dict`):
+        prop_type (:obj:`str`):
+    '''
+    eprop = g.new_edge_property(prop_type)           
+    g.ep[prop_name] = eprop
+    edge_list = [(e[0], e[1], v) for e, v in prop_dict.items()]
+    g.add_edge_list(edge_list, eprops=[g.ep[prop_name]])       
