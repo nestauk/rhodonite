@@ -270,3 +270,37 @@ def clique_unions(clique_indices, limit):
         for combo in itertools.combinations(clique_indices, l):
             combos.append(tuple(combo))
     return combos
+
+def dict_to_vertex_prop(g, prop_dict, prop_type='int'):
+    '''dict_to_vertex_prop
+    Maps dictionary values to a vertex property using keys.
+
+    Args:
+        g (:obj:`graph_tool.Graph`):
+        prop_dict (:obj:`dict`):
+        prop_type (:obj:`str`):
+    
+    Returns
+        vprop (:obj:`graph_tool.PropertyMap`):
+    '''
+    vprop = g.new_vertex_property(prop_type)
+    vprop.a = itemgetter(*range(g.num_vertices()))(prop_dict)
+    return vprop
+
+def dict_to_edge_prop(g, prop_dict, indices_dict, prop_type='int'):
+    '''dict_to_edge_prop
+    Maps dictionary values to an edge property using keys.
+
+    Args:
+        g (:obj:`graph_tool.Graph`):
+        prop_dict (:obj:`dict`):
+        indices_dict (:obj:`dict`):
+        prop_type (:obj:`str`):
+    
+    Returns
+        vprop (:obj:`graph_tool.PropertyMap`):
+    '''
+    eprop = g.new_edge_property(prop_type)
+    indices = list(itemgetter(*prop_dict.keys())(indices_dict))
+    eprop.a[indices] = list(prop_dict.values())
+    return eprop
