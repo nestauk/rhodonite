@@ -316,4 +316,23 @@ def add_dict_edge_list(g, prop_dict, prop_name, prop_type='int'):
     eprop = g.new_edge_property(prop_type)           
     g.ep[prop_name] = eprop
     edge_list = [(e[0], e[1], v) for e, v in prop_dict.items()]
-    g.add_edge_list(edge_list, eprops=[g.ep[prop_name]])       
+    g.add_edge_list(edge_list, eprops=[g.ep[prop_name]])
+
+def add_props_from_dict(g, prop_dict, prop_tag='{}'):
+    '''add_props_from_dict
+    Internalises property maps contained in a dictionary to a graph.
+
+    Args:
+        g (:obj:`graph_tool.Graph`):
+        prop_dict (:obj:`dict` of :obj:`graph_tool.PropertyMap`):
+        prop_tag (:obj:`str`):
+    '''
+    for k, prop in prop_dict.items():
+        kt = prop.key_type()
+        if kt == 'v':
+            g.vp[prop_tag.format(k)] = prop
+        elif kt == 'e':
+            g.ep[prop_tag.format(k)] = prop
+        elif kt == 'g':
+            g.gp[prop_tag.format(k)] = prop
+
