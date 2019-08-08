@@ -5,6 +5,7 @@ import warnings
 from collections import Counter, defaultdict
 from gensim.corpora import Dictionary
 from graph_tool.all import Graph
+from itertools import chain, combinations
 
 from rhodonite.utilities import window, flatten, sequence_item_types
 
@@ -12,7 +13,7 @@ from rhodonite.utilities import window, flatten, sequence_item_types
 class CooccurrenceGraph(Graph):
 
     def __init__(self, directed=False, *args, **kwargs):
-        """SlidingWindowGraph
+        """CooccurrenceGraph
         A graph class that has methods for contructing cooccurrence networks.
 
         The resulting network is one where vertices are a series of items, and
@@ -183,4 +184,30 @@ class CooccurrenceGraph(Graph):
         for k in dictionary.keys():
             o[k] = counts.get(k, 0)
         return o
+
+def cooccurrence_counts(sequences):
+    '''cooccurrence_counts
+    Counts the cooccurring pairs from a nested sequence.
+
+    Args:
+        sequences (:obj:`iter` of :obj:`iter`):
+
+    Returns:
+        (:obj:`collections.Counter`):
+        
+    '''
+    combos = (combinations(sorted(sequence), 2) for sequence in sequences)
+    return Counter(chain(*combos))
+
+def occurrence_counts(sequences):
+    '''occurrence_counts
+    Counts the occurrences of each element in a nested sequence.
+
+    Args:
+        sequences (:obj:`iter`):
+
+    Returns
+        (:obj:`collections.Counter`)
+    '''
+    return Counter(chain(*sequences))
 
