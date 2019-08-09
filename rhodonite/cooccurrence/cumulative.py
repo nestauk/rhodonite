@@ -16,6 +16,17 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
             iterables should be equal to `len(steps)`.
         directed (:obj:`bool`): Currently has no effect. In future this will
             determine whether to build a bi-directional cooccurrence graph.
+    Returns:
+        g (:obj:`graph_tool.Graph`): A graph. Vertices are elements. Edges
+            link terms that have cooccurred at least once in the series.
+        o_props (:obj:`dict`): Property maps with vertex occurrence values at
+             each step.
+        o_cumsum_props (:obj:`dict`): Property maps with cumulative vertex
+            cooccurrence values at each step.
+        co_props (:obj:`dict`): Property maps with edge cooccurrnce values
+            at each step.
+        co_cumsum_props (:obj:`dict`): Property maps with cumulative edge
+            cooccurrence values at each step.
     '''
 
     g = Graph(directed=directed)
