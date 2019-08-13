@@ -7,7 +7,7 @@ from gensim.corpora import Dictionary
 from graph_tool.all import Graph
 from itertools import chain, combinations
 
-from rhodonite.utilities import window, flatten, sequence_item_types
+from rhodonite.utilities.misc import window, flatten, sequence_item_types
 
 
 class CooccurrenceGraph(Graph):

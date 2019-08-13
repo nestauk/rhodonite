@@ -1,8 +1,8 @@
 from collections import Counter
 from graph_tool import Graph
 
-from rhodonite.utilities import dict_to_vertex_prop
-from rhodonite.cooccurrence import cooccurrence_counts
+from rhodonite.utilities.misc import dict_to_vertex_prop
+from rhodonite.cooccurrence.basic import cooccurrence_counts
 
 
 def cumulative_cooccurrence_graph(steps, sequences, directed=False):
@@ -31,7 +31,7 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
 
     g = Graph(directed=directed)
 
-    o_total = Counter(chain(*sequences)))
+    o_total = Counter(chain(*sequences))
     n_vertices = len(o_total)
     g.add_vertex(n_vertices)
     o_max = dict_to_vertex_prop(g, o_total)
