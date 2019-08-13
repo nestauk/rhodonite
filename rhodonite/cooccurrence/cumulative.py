@@ -1,7 +1,7 @@
 from collections import Counter
 from graph_tool import Graph
 
-from rhodonite.utilities.misc import dict_to_vertex_prop
+from rhodonite.utils.misc import dict_to_vertex_prop
 from rhodonite.cooccurrence.basic import cooccurrence_counts
 
 
