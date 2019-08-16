@@ -1,7 +1,8 @@
 from collections import Counter
 from graph_tool import Graph
+from itertools import chain, combinations
 
-from rhodonite.utils.misc import dict_to_vertex_prop
+from rhodonite.utils.misc import dict_to_vertex_prop, dict_to_edge_prop
 from rhodonite.cooccurrence.basic import cooccurrence_counts
 
 
@@ -31,7 +32,7 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
 
     g = Graph(directed=directed)
 
-    o_total = Counter(chain(*sequences))
+    o_total = Counter(chain(*chain(*sequences)))
     n_vertices = len(o_total)
     g.add_vertex(n_vertices)
     o_max = dict_to_vertex_prop(g, o_total)
@@ -44,24 +45,28 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
     edges = g.get_edges()
     edge_indices = dict(zip([(e[0], e[1]) for e in edges], edges[:, 2]))
 
-    o_cumsum = g.new_vertex_property('int')
-    co_cumsum = g.new_edge_property('int')
     o_props = {}
     co_props = {}
     o_cumsum_props = {}
     co_cumsum_props = {}
-    for step in steps[:-1]:
-        o_step = Counter(chain(*sequence_dict[step]))
+    for i, (step, seq) in enumerate(zip(steps[:-1], sequences[:-1])):
+        o_step = Counter(chain(*seq))
         o_props[step] = dict_to_vertex_prop(g, o_step)
-        o_cumsum.a = o_cumsum.a + o_props[step].a
-        o_cumsum_props[step] = o_cumsum
-        
-        combos = (combinations(sorted(ids), 2) for ids in sequence_dict[step])
+
+        combos = (combinations(sorted(ids), 2) for ids in seq)
         co_step = Counter(chain(*combos))
         co_props[step] = dict_to_edge_prop(g, co_step, edge_indices)
-        co_cumsum.a = co_cumsum.a + co_props[step].a
+
+        o_cumsum = g.new_vertex_property('int')
+        co_cumsum = g.new_edge_property('int')
+        if i == 0:
+            o_cumsum.a = o_cumsum.a + o_props[step].a
+            co_cumsum.a = co_cumsum.a + co_props[step].a
+        else:
+            o_cumsum.a = o_cumsum_props[steps[i-1]].a + o_props[step].a
+            co_cumsum.a = co_cumsum_props[steps[i-1]].a + co_props[step].a 
+        o_cumsum_props[step] = o_cumsum
         co_cumsum_props[step] = co_cumsum
-    
     # fill in the last step without needing to count occurrences
     # or cooccurrences
     step_max = steps[-1]
@@ -73,8 +78,12 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
     co_props[step_max] = co
 
     o_cumsum_props[step_max] = o_max
-    co_cumsums_props[step_max] = co_max
+    co_cumsum_props[step_max] = co_max
     
+    steps_prop = g.new_graph_property('vector<int>')
+    steps_prop.set_value(steps)
+    g.gp['steps'] = steps_prop
+
     return g, o_props, o_cumsum_props, co_props, co_cumsum_props
 
 def label_cumulative_cooccurrence(g, co_props):
