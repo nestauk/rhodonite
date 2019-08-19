@@ -1,6 +1,7 @@
 from collections import Counter
-from graph_tool import Graph
+from graph_tool import Graph, edge_endpoint_property
 from itertools import chain, combinations
+import numpy as np
 
 from rhodonite.utils.misc import dict_to_vertex_prop, dict_to_edge_prop
 from rhodonite.cooccurrence.basic import cooccurrence_counts
@@ -149,7 +150,7 @@ def label_active_edge(g, co_props):
     for step, co_prop in co_props.items():
         active_edge_prop = g.new_edge_property('bool')
         active_edge_prop.a = co_prop.a > 0
-        active_edge_props[step] = active_prop
+        active_edge_props[step] = active_edge_prop
     return active_edge_props
 
 def label_new_edge(g, co_props, label_old=True, label_steps=False):
@@ -229,11 +230,11 @@ def label_edge_activity(g, co_props):
     active_edge_props = label_active_edge(g, co_props)
     new_edge_props, old_edge_props = label_new_edge(g, co_props)
     for step in active_edge_props.keys():
-        reinforcing_eprop = g.new_vertex_property('bool')
+        reinforcing_eprop = g.new_edge_property('bool')
         reinforcing_eprop.a = active_edge_props[step].a & old_edge_props[step].a
         reinforcing_edge_props[step] = reinforcing_eprop
 
-        inactive_eprop = g.new_vertex_property('bool')
+        inactive_eprop = g.new_edge_property('bool')
         inactive_eprop.a = ((old_edge_props[step].a > 0) 
                             & (active_edge_props[step].a == 0))
         inactive_edge_props[step] = inactive_eprop
@@ -255,7 +256,6 @@ def label_new_vertex(g, o_props, label_steps=False):
         vertex_step_prop (:obj:`graph_tool.PropertyMap`):
     '''
     new_vertex_props = {}
-    steps = sorted(steps)
     _vertex_tracker = g.new_vertex_property('bool')
     for step, o_prop in o_props.items():
         new_vertex_prop = g.new_vertex_property('bool')
