@@ -277,7 +277,7 @@ def label_new_vertex(g, o_props, label_steps=False):
 
 def label_linkage(g, new_eprops, new_vprops):
     """label_linkage
-    Labels new edges as fresh, mixed or mature.
+    Labels new edges as additive, extending or joining.
      - Fresh: edges that connect two vertices that have both appeared for the
         first time at a given step.
      - Mixed: edges that connect a new vertex with a vertex that was already
@@ -290,14 +290,14 @@ def label_linkage(g, new_eprops, new_vprops):
         new_vprops (:obj:`dict`):
 
     Returns:
-        fresh_eprops (:obj:`dict`):
-        mixed_eprops (:obj:`dict`):
-        mature_eprops (:obj:`dict`):
+        additive_eprops (:obj:`dict`):
+        extending_eprops (:obj:`dict`):
+        joining_eprops (:obj:`dict`):
     """
     
-    fresh_eprops = {}
-    mixed_eprops = {}
-    mature_eprops = {}
+    additive_eprops = {}
+    extending_eprops = {}
+    joining_eprops = {}
     
     for step, new_eprop in new_eprops.items():
         new_vprop = new_vprops[step]
@@ -306,21 +306,21 @@ def label_linkage(g, new_eprops, new_vprops):
         s_new_prop = edge_endpoint_property(g, new_vprop, 'source')
         t_new_prop = edge_endpoint_property(g, new_vprop, 'target')
     
-        fresh_eprop = g.new_edge_property('bool')
-        mixed_eprop = g.new_edge_property('bool')
-        mature_eprop = g.new_edge_property('bool')
+        additive_eprop = g.new_edge_property('bool')
+        extending_eprop = g.new_edge_property('bool')
+        joining_eprop = g.new_edge_property('bool')
     
-        fresh_eprop.a = (s_new_prop.a & t_new_prop.a)  & (new_eprop.a)
-        mixed_eprop.a = (s_new_prop.a != t_new_prop.a)  & (new_eprop.a)
-        mature_eprop.a = ((fresh_eprop.a == False) 
-                          & (mixed_eprop.a == False) 
+        additive_eprop.a = (s_new_prop.a & t_new_prop.a)  & (new_eprop.a)
+        extending_eprop.a = (s_new_prop.a != t_new_prop.a)  & (new_eprop.a)
+        joining_eprop.a = ((additive_eprop.a == False) 
+                          & (extending_eprop.a == False) 
                           & (new_eprop.a))
         
-        fresh_eprops[step] = fresh_eprop
-        mixed_eprops[step] = mixed_eprop
-        mature_eprops[step] = mature_eprop
+        additive_eprops[step] = additive_eprop
+        extending_eprops[step] = extending_eprop
+        joining_eprops[step] = joining_eprop
         
-    return fresh_eprops, mixed_eprops, mature_eprops
+    return additive_eprops, extending_eprops, joining_eprops
 
 def label_k_score(g, co_cumsum_eprops, first=True):
     '''label_k_score
@@ -338,11 +338,11 @@ def label_k_score(g, co_cumsum_eprops, first=True):
     '''
     k_score_eprops = {}
     for i, step in enumerate(co_cumsum_eprops.keys()):
+        k_score_eprop = g.new_edge_property('float')
         if i == 0:
             if first:
                 k_score_eprop = g.new_edge_property('float', val=1)
         else:
-            k_score_eprop = g.new_edge_property('float')
             k_score_eprop.a = 1 / (co_cumsum_eprops[step_prev].a + 1)
         step_prev = step
         k_score_eprops[step] = k_score_eprop
@@ -370,7 +370,6 @@ def label_k_growth(g, co_eprops, co_cumsum_eprops):
         else:
             k_growth_eprop = g.new_edge_property('float')
             k_growth_eprop.a = (co_eprops[step].a / 
-                                    (co_cumsum_eprops[step].a 
-                                    - co_eprops[step].a + 1))
+                                    (co_cumsum_eprops[step - 1].a + 1))
             k_growth_eprops[step] = k_growth_eprop
     return k_growth_eprops
