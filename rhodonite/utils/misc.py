@@ -319,8 +319,8 @@ def add_dict_edge_list(g, prop_dict, prop_name, prop_type='int'):
     edge_list = [(e[0], e[1], v) for e, v in prop_dict.items()]
     g.add_edge_list(edge_list, eprops=[g.ep[prop_name]])
 
-def add_props_from_dict(g, prop_dict, prop_tag='{}'):
-    '''add_props_from_dict
+def internalize_prop_dict(g, prop_dict, prop_tag='{}'):
+    '''internalize_props_from_dict
     Internalises property maps contained in a dictionary to a graph.
 
     Args:
