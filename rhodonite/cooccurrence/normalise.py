@@ -1,9 +1,5 @@
 import numpy as np
-
-from collections import Counter
 from graph_tool import edge_endpoint_property
-
-from rhodonite.utilities import edge_property_as_matrix, flatten
 
 
 def association_strength(g, o_vprop, co_eprop, log=False):
@@ -15,10 +11,16 @@ def association_strength(g, o_vprop, co_eprop, log=False):
 
     .. math::
         a = \frac{2 N c_{ij}}{o_{i} o{j}}
+    
+    if the graph is directed, or
 
-    where N is the total number of cooccurrences, :math:`c_{ij}` is the number of 
-    cooccurrences between vertices :math:`i` and :math:`j`, and :math:`o_{i}` and
-    :math:`o_{j}` are the respective occurrence frequencies for those vertices.
+    .. math::
+        a = \frac{N c_{ij}}{o_{i} o{j}}
+    
+    if the graph is undirected, where N is the total number of cooccurrences, 
+    :math:`c_{ij}` is the number of cooccurrences between vertices :math:`i` 
+    and :math:`j`, and :math:`o_{i}` and :math:`o_{j}` are the respective 
+    occurrence frequencies for those vertices.
 
 
     Args:
@@ -39,10 +41,16 @@ def association_strength(g, o_vprop, co_eprop, log=False):
     n_cooccurrences = np.sum(co_eprop.get_array())
 
     a_s = g.new_edge_property('float')
-    a_s.a = (
-        (2 * n_cooccurrences * co_eprop.a) / 
-        (o_source.a * o_target.a)
-            )
+    if g.is_directed():
+        a_s.a = (
+            (n_cooccurrences * co_eprop.a) / 
+            (o_source.a * o_target.a)
+                )
+    else:
+        a_s.a = (
+            (2 * n_cooccurrences * co_eprop.a) / 
+            (o_source.a * o_target.a)
+                )
 
     if log:
         a_s.a = np.log10(a_s.get_array())
@@ -102,7 +110,7 @@ def conditional_probability(g, occurrence_vprop, cooccurrence_eprop, log=False):
         o_target = edge_endpoint_property(g, occurrence_vprop, 'target')
         o_source = edge_endpoint_property(g, occurrence_vprop, 'source')
         c_p_source.a = cooccurrence_eprop.a / o_target.a
-        c_p_targe.a = cooccurrence_eprop.a / o_source.a
+        c_p_target.a = cooccurrence_eprop.a / o_source.a
 
         if log:
             c_p_source.a = np.log10(c_p_source.a)

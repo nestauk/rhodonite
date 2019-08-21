@@ -3,7 +3,7 @@ from graph_tool import Graph, edge_endpoint_property
 from itertools import chain, combinations
 import numpy as np
 
-from rhodonite.utils.misc import dict_to_vertex_prop, dict_to_edge_prop
+from rhodonite.utils.graph import dict_to_vertex_prop, dict_to_edge_prop
 from rhodonite.cooccurrence.basic import cooccurrence_counts
 
 
