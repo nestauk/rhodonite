@@ -6,7 +6,7 @@ from graph_tool import edge_endpoint_property
 from rhodonite.utilities import edge_property_as_matrix, flatten
 
 
-def association_strength(g, norm=False, log=False):
+def association_strength(g, occurrence_vprop, cooccurrence_eprop, norm=False, log=False):
     """assocation_strength_adj
     Calculates the symmetric association strength matrix from the
     edge cooccurrence matrix and vertex occurrence vector.
@@ -25,40 +25,20 @@ def association_strength(g, norm=False, log=False):
 
     a_s = g.new_edge_property('float')
 
-    o_source = edge_endpoint_property(g, g.vp['occurrence'], 'source')
-    o_target = edge_endpoint_property(g, g.vp['occurrence'], 'target')
-    n_cooccurrences = np.sum(g.ep['cooccurrence'].get_array())
+    o_source = edge_endpoint_property(g, occurrence_vprop, 'source')
+    o_target = edge_endpoint_property(g, occurrence_vprop, 'target')
+    n_cooccurrences = np.sum(cooccurrence_eprop.get_array())
 
     a_s.a = (
-        (2 * n_cooccurrences * g.ep['cooccurrence'].get_array()) / 
-        (o_source.get_array() * o_target.get_array())
+        (2 * n_cooccurrences * cooccurrence_eprop.a) / 
+        (o_source.a * o_target.a)
             )
 
     if log:
         a_s.a = np.log10(a_s.get_array())
     return a_s
 
-def cooccurrence_matrix(g):
-    """cooccurrence
-    Creates a cooccurrence matrix from a counter of edge cooccurrences. This
-    is equivalent to an adjacency matrix, weighted by cooccurrence.
-
-    Args:
-        g (:obj:`Graph`):
-
-    Returns:
-        cooccurrences (:obj:`PropertyMap`):
-    """
-    co_sequences_flat = flatten(g.id_co_sequences)
-    cooccurrence_counts = Counter(co_sequences_flat)
-    cooccurrences = g.new_edge_property('int')
-    for (s, t), co in cooccurrence_counts.items():
-        s = g.tokenidx2vertex[s]
-        t = g.tokenidx2vertex[t]
-        cooccurrences[g.edge(s, t)] = co
-    return cooccurrences
-
-def conditional_probability(g, log=False):
+def conditional_probability(g, occurrence_vprop, cooccurrence_eprop, log=False):
     """conditional_probability
     Creates an edge property with the conditional probability between source
     and target. Only works for directed graphs. The conditional probability is
@@ -74,14 +54,10 @@ def conditional_probability(g, log=False):
     """
     if g.is_directed():
         conditional_probability_prop = g.new_edge_property('float')
-        o_target = edge_endpoint_property(g, g.vp['occurrence'], 'target')
-        conditional_probability_prop.a = (
-                g.ep['cooccurrence'].get_array() /
-                o_target.get_array()
-                )
+        o_target = edge_endpoint_property(g, occurrence_vprop, 'target')
+        conditional_probability_prop.a = cooccurrence_eprop.a / o_target.a
         if log:
             conditional_probability_prop.a = np.log10(
-                    conditional_probability_prop.get_array()
-                    )
+                    conditional_probability_prop.a)
         return conditional_probability_prop
 
