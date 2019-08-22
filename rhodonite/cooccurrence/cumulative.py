@@ -36,7 +36,7 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
     o_total = Counter(chain(*chain(*sequences)))
     n_vertices = len(o_total)
     g.add_vertex(n_vertices)
-    o_max = dict_to_vertex_prop(g, o_total)
+    o_max = dict_to_vertex_prop(g, o_total, 'int')
 
     co_total = cooccurrence_counts(chain(*sequences))
     edge_list = ((c[0], c[1], count) for c, count in co_total.items())
@@ -52,11 +52,11 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
     co_cumsum_props = {}
     for i, (step, seq) in enumerate(zip(steps[:-1], sequences[:-1])):
         o_step = Counter(chain(*seq))
-        o_props[step] = dict_to_vertex_prop(g, o_step)
+        o_props[step] = dict_to_vertex_prop(g, o_step, 'int')
 
         combos = (combinations(sorted(ids), 2) for ids in seq)
         co_step = Counter(chain(*combos))
-        co_props[step] = dict_to_edge_prop(g, co_step, edge_indices)
+        co_props[step] = dict_to_edge_prop(g, co_step, 'int', edge_indices)
 
         o_cumsum = g.new_vertex_property('int')
         co_cumsum = g.new_edge_property('int')

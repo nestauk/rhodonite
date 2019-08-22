@@ -197,10 +197,9 @@ def flatten(list_of_iters):
     list_of_iters (:obj:`iter` of :obj:`iter`): A list of iterables.
     
     Returns:
-    flat (:obj:`list`): A flat list.
+    (:obj:`generator`): Generates flattened list.
     """
-    flat = list(itertools.chain(*list_of_iters))
-    return flat
+    return itertools.chain(*list_of_iters)
 
 def sequence_item_types(sequence):
     """sequence_item_types"""

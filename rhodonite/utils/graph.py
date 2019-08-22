@@ -39,7 +39,7 @@ def subgraph_eprop_agg(g, vertices, eprop, aggfuncs):
     agg = [f(vals) for f in aggfuncs]
     return agg
 
-def dict_to_vertex_prop(g, prop_dict, **vprop_kwargs):
+def dict_to_vertex_prop(g, prop_dict, val_type):
     '''dict_to_vertex_prop
     Maps dictionary values to a vertex property using keys.
 
@@ -53,11 +53,11 @@ def dict_to_vertex_prop(g, prop_dict, **vprop_kwargs):
     Returns
         vprop (:obj:`graph_tool.PropertyMap`):
     '''
-    vprop = g.new_vertex_property(prop_type, **vprop_kwargs)
-    vprop.a = itemgetter(*prop_dict.keys())(prop_dict)
+    vprop = g.new_vertex_property(val_type)
+    vprop.a = itemgetter(*range(g.num_vertices()))(prop_dict)
     return vprop
 
-def dict_to_edge_prop(g, prop_dict, prop_type, edge_index_dict=None,  **eprop_kwargs):
+def dict_to_edge_prop(g, prop_dict, val_type, edge_index_dict=None):
     '''dict_to_edge_prop
     Maps dictionary values to an edge property using keys.
 
@@ -66,7 +66,7 @@ def dict_to_edge_prop(g, prop_dict, prop_type, edge_index_dict=None,  **eprop_kw
         prop_dict (:obj:`dict`): A dictionary where keys are tuples of source target
             vertices or indices, and values are the value of a property or weight
             assigned to the edge.
-        prop_type (:obj:`str`): See `graph_tool.PropertyMap`.
+        val_type (:obj:`str`): See `graph_tool.PropertyMap`.
         eprop_kwargs: Other edge property map kwargs. See `graph_tool.PropertyMap`
     
     Returns
@@ -74,12 +74,12 @@ def dict_to_edge_prop(g, prop_dict, prop_type, edge_index_dict=None,  **eprop_kw
     '''
     if edge_index_dict is None:
         edge_index_dict = {(s, t): v for s, t, v in g.get_edges()}
-    eprop = g.new_edge_property(prop_type, **eprop_kwargs)
+    eprop = g.new_edge_property(val_type)
     indices = list(itemgetter(*prop_dict.keys())(edge_index_dict))
     eprop.a[indices] = list(prop_dict.values())
     return eprop
 
-def add_dict_edge_list(g, prop_dict, prop_name, eprop_type, **eprop_kwargs):
+def add_dict_edge_list(g, prop_dict, prop_name, eval_type, **eprop_kwargs):
     '''add_dict_edge_list
     Converts a dictionary to graph edges with an edge property map.
 
@@ -89,10 +89,10 @@ def add_dict_edge_list(g, prop_dict, prop_name, eprop_type, **eprop_kwargs):
             vertices or indices, and values are the value of a property or weight
             assigned to the edge.
         vertices and values are the values to be inserted into the PropertyMap.
-        prop_type (:obj:`str`): The type of the property. See `graph_tool.PropertyMap`.
+        val_type (:obj:`str`): The type of the property. See `graph_tool.PropertyMap`.
         eprop_kwargs: See `graph_tool.PropertyMap`.
     '''
-    eprop = g.new_edge_property(eprop_type, **eprop_kwargs)
+    eprop = g.new_edge_property(eval_type)
     g.ep[prop_name] = eprop
     edge_list = [(e[0], e[1], v) for e, v in prop_dict.items()]
     g.add_edge_list(edge_list, eprops=[g.ep[prop_name]])
