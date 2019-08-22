@@ -1,6 +1,7 @@
 from collections import Counter
 from graph_tool import Graph, edge_endpoint_property
 from itertools import chain, combinations
+import logging
 import numpy as np
 
 from rhodonite.utils.graph import dict_to_vertex_prop, dict_to_edge_prop
@@ -51,6 +52,7 @@ def cumulative_cooccurrence_graph(steps, sequences, directed=False):
     o_cumsum_props = {}
     co_cumsum_props = {}
     for i, (step, seq) in enumerate(zip(steps[:-1], sequences[:-1])):
+        logging.info(f'Calculating cooccurrences at step {step}')
         o_step = Counter(chain(*seq))
         o_props[step] = dict_to_vertex_prop(g, o_step, 'int')
 
