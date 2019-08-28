@@ -17,21 +17,15 @@ def jaccard_similarity(A, B):
     intersection = A.multiply(B).sum(axis=1)
     union = ((A + B) > 0).sum(axis=1)
     j = np.divide(intersection, union)
-#     if isinstance(B, (csr_matrix, csc_matrix)):
-#         l = B.shape[0]
-#         A = np.tile(a.todense(), [l, 1])
-#     else:
-#         l = len(B)
-#         A = np.tile(a, [l, 1])
-#  
-#     intersection = np.sum(np.multiply(A, B), axis=1)
-#     union = np.sum(((A + B) > 0), axis=1)
-#     j = np.divide(intersection, union)
     return j
 
 def jaccard_similarity_set(a, b):
     """jaccard_similarity"""
-    intersection = len(list(set(a).intersection(b)))
-    union = (len(a) + len(b)) - intersection
+    a = set(a)
+    b = set(b)
+    intersection = len(a.intersection(b))
+    union = len(a.union(b))
+#     intersection = len(list(set(a).intersection(b)))
+#     union = (len(a) + len(b)) - intersection
     return intersection / union
 

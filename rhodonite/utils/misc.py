@@ -1,6 +1,7 @@
 import itertools
 import numpy as np
 import pathlib
+from operator import itemgetter
 
 from collections import defaultdict
 
@@ -94,6 +95,15 @@ def clear_graph(g):
     if len(list(g.vertices())) > 0:
         for v in reversed(sorted(g.vertices())):
             g.remove_vertex(v)
+
+def reverse_index(sequences):
+    '''reverse_index
+    '''
+    mapping = defaultdict(list)
+    for i, seq in enumerate(sequences):
+        for e in seq:
+            mapping[e].append(i)
+    return mapping
 
 def edge_property_as_matrix(g, prop_name):
     """edge_property_as_matrix
@@ -196,10 +206,9 @@ def flatten(list_of_iters):
     list_of_iters (:obj:`iter` of :obj:`iter`): A list of iterables.
     
     Returns:
-    flat (:obj:`list`): A flat list.
+    (:obj:`generator`): Generates flattened list.
     """
-    flat = list(itertools.chain(*list_of_iters))
-    return flat
+    return itertools.chain(*list_of_iters)
 
 def sequence_item_types(sequence):
     """sequence_item_types"""
@@ -234,4 +243,57 @@ def window(seq, n=3):
     for elem in it:
         result = result[1:] + (elem,)
         yield result
+
+def label_isolated(g):
+    """label_isolated
+    Creates a vertex property map with True if a node has no neighbours,
+    else False.
+
+    Args:
+        g (graph_tool.Graph): A graph.
+
+    Returns:
+        isolated_vp (graph_tool.PropertyMap): Property map labelling isolated
+            vertices.
+    """
+    isolated_vp = g.new_vertex_property('bool')
+    for v in g.vertices():
+        if v.out_degree() == 0:
+            isolated_vp[v] = True
+        else:
+            isolated_vp[v] = False
+    return isolated_vp
+
+def clique_unions(clique_indices, limit):
+    """clique_unions
+    Create combinations of cliques up to limit.
+    Args:
+        clique_indices (:obj:`iter` of int): List of indices of cliques.
+        limit (int): The maximum number of cliques in each union.
+    Returns:
+        combos (:obj:`iter` of :obj:`iter` of int): Tuples of clique
+            combinations.
+    """
+    combos = []
+    for l in range(1, limit + 1):
+        for combo in itertools.combinations(clique_indices, l):
+            combos.append(tuple(combo))
+    return combos
+
+def recursive_combinations(iterable, limit):
+    """recursive_combinations
+    Create combinations of cliques up to limit.
+    Args:
+        clique_indices (:obj:`iter` of int): List of indices of cliques.
+        limit (int): The maximum number of cliques in each union.
+    Returns:
+        combos (:obj:`iter` of :obj:`iter` of int): Tuples of clique
+            combinations.
+    """
+    combos = []
+    for l in range(1, limit + 1):
+        for combo in itertools.combinations(iterable, l):
+            yield combo
+#             combos.append(tuple(combo))
+#     return combos
 
