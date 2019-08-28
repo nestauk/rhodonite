@@ -24,15 +24,15 @@ source_suffix = '.rst'
 master_doc = 'index'
 project = 'rhodonite'
 year = '2018'
-author = 'George Richardson'
+author = 'Nesta'
 copyright = '{0}, {1}'.format(year, author)
 version = release = '0.1.0'
 
 pygments_style = 'trac'
 templates_path = ['.']
 extlinks = {
-    'issue': ('https://github.com/georgerichardson/rhodonite/issues/%s', '#'),
-    'pr': ('https://github.com/georgerichardson/rhodonite/pull/%s', 'PR #'),
+    'issue': ('https://github.com/nestauk/rhodonite/issues/%s', '#'),
+    'pr': ('https://github.com/nestauk/rhodonite/pull/%s', 'PR #'),
 }
 # on_rtd is whether we are on readthedocs.org
 on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
