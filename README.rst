@@ -10,7 +10,6 @@
       - |docs|
     * - tests
       - | |travis|
-        |
 ..     * - package
 ..       - | |version| |wheel| |supported-versions| |supported-implementations|
 ..         | |commits-since|
@@ -44,7 +43,7 @@
 ..     :target: https://pypi.python.org/pypi/rhodonite
 
 
-.. end-badges
+end-badges
 
 Welcome to the Rhodonite repository!
 
