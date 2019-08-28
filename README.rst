@@ -18,9 +18,9 @@
     :target: https://readthedocs.org/projects/rhodonite
     :alt: Documentation Status
 
-.. |travis| image:: https://travis-ci.org/georgerichardson/rhodonite.svg?branch=master
+.. |travis| image:: https://travis-ci.org/nestauk/rhodonite.svg?branch=master
     :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/georgerichardson/rhodonite
+    :target: https://travis-ci.org/nestauk/rhodonite
 
 .. .. |version| image:: https://img.shields.io/pypi/v/rhodonite.svg
 ..     :alt: PyPI Package latest release
