@@ -12,10 +12,11 @@ from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool, cpu_count
 
-from rhodonite.utilities import (window, flatten, clear_graph, 
-        get_aggregate_vp, reverse_index_communities, clique_unions)
-from rhodonite.similarity import jaccard_similarity, jaccard_similarity_set
-from rhodonite.tabular import vertices_to_dataframe
+from rhodonite.utils.misc import (window, flatten, clear_graph, 
+        get_aggregate_vp, reverse_index_communities, clique_unions, 
+        reverse_index, recursive_combinations)
+from rhodonite.utils.math import jaccard_similarity, jaccard_similarity_set
+from rhodonite.utils.tabular import vertices_to_dataframe
 
 import time
 
@@ -179,7 +180,7 @@ def label_cross_pollination(g, merging_prop, agg=np.mean):
     for v in g_merging.vertices():
         parents = [g.vp['item'][p] for p in g.vertex(v).out_neighbors()]
         jaccard = agg(
-            [jaccard_similarity_set(list(c[0]), list(c[1]))
+            [1 - jaccard_similarity_set(list(c[0]), list(c[1]))
             for c in combinations(parents, 2)]
         )
         cross_poll_prop[v] = jaccard
@@ -198,12 +199,11 @@ def label_diversification(g, branching_prop, agg=np.mean):
             median.
     """
     diversification_prop = g.new_vertex_property('float')
-    g_branching = GraphView(g, vfilt=lambda v: branching_prop[v] ==  1)
-    parents = []
+    g_branching = GraphView(g, vfilt=branching_prop, skip_efilt=True)
     for v in g_branching.vertices():
         children = [g.vp['item'][c] for c in g.vertex(v).in_neighbors()]
         jaccard = agg(
-            [jaccard_similarity_set(list(c[0]), list(c[1]))
+            [1 - jaccard_similarity_set(list(c[0]), list(c[1]))
             for c in combinations(children, 2)]
         )
         diversification_prop[v] = jaccard
@@ -417,137 +417,329 @@ def find_links(args):
                 links.append(link)
     return links
 
+def filter_by_size(sequences, min_size=None, max_size=None):
+    """filter_communities
+    Returns the communities in a series that are larger than the minimum
+    community size.
 
-class PhylomemeticGraph(Graph):
+    Args:
+        cliques_set (:obj:`iter` of :obj:`iter`): Series of iterables
+            containing the vertices that make up cliques.
+        min_size (int): The threshold size.
+
+    Returns:
+        (:obj:`filter`):
+    """
+    if (min_size is not None) & (max_size is not None):
+        f = lambda x: (len(x) >= min_size) & (len(x) <= max_size)
+    elif (min_size is not None) & (max_size is None):
+        f = lambda x: len(x) >= min_size
+    elif (min_size is None) & (max_size is not None):
+        f = lambda x: len(x) <= max_size
+    else:
+        f = lambda x: x is not None
+    return filter(f, sequences)
+
+def find_links_fast(communities_grouped, max_parent_combinations, offsets,
+        min_forward_containment=0, min_backward_containment=0, 
+        reverse_mappings=None):
+    # import pdb; pdb.set_trace()
     
-    def __init__(self, *args, **kwargs):
-        """PhylomemeticGraph
+    n_largest_combos = 0
+    edge_list = []
 
-        A graph that links longtitudinal sets of communities using a
-        "phylomemetic" algorithm (Chavalarias and Cointet 2013).
-        """
-        super().__init__(*args, **kwargs)
+    for i, communities in enumerate(communities_grouped):
+        if i == 0:
+            past_community_lengths = np.array([len(c) for c in communities])
+            if reverse_mappings is None:
+                past_reverse_mapping = reverse_index(communities)
+            continue
+        for community_id, community in zip(range(*offsets[i]), communities):
+            matches = np.array(
+                    list((flatten(itemgetter(*community)(past_reverse_mapping))
+                        )))
+            if len(matches) == 0:
+                continue
+            match_ids, match_counts = np.unique(matches, return_counts=True)
+            match_lengths = past_community_lengths[match_ids]
+            community_lengths = np.array([len(community)] * match_ids.shape[0])
 
-    def from_communities(self, community_sets, labels=None, min_clique_size=None,
-            parent_limit=2, workers='auto', chunksize='auto'):
-        """from_communities
-        Builds a phylomemetic graph from a set of communities.
+            backward_containment = match_counts / community_lengths
+            forward_containment = match_counts / match_lengths
+            # check for perfect links
+            mask_perfect = (backward_containment == 1) & (forward_containment ==1)
+            if np.sum(mask_perfect) > 0:
+                for match in match_ids[mask_perfect]:
+                    edge_list.append((community_id, match, 1, 1))
 
-        Args:
-            community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`): Sets of
-                elements grouped into communities.
-            labels (:obj:`iter`): Labels that identify the period at which each
-                set of communities occurs.
-            min_clique_size (int): The minimum community size to be consider for
-                for a node in the network.
-            workers (int): The number of CPUs to use.
-            parent_limit (int): The maximum combination size for unions of 
-                potential parental candidates.
-            chunksize (int or str): The number of communities for each CPU to
-                process with in each process. Default is 'auto'.
-
-        Returns:
-            self
-        """
-
-        if workers == 'auto':
-            workers = cpu_count() - 1
-
-        community_sets_filt = []
-        community_sets_lengths = []
-        element_community_mappings = []
-        for communities in community_sets:
-            cfsilt = self.filter_communities(
-                    communities, min_clique_size
-                    )
-            community_sets_filt.append(cfsilt)
-            community_sets_lengths.append(len(cfsilt))
-            element_community_mappings.append(
-                reverse_index_communities(cfsilt)
-                )
-
-        community_vertex_maps = []
-        community_sets_pos = []
-        cumsum_lengths = np.cumsum(community_sets_lengths)
-        for length, count in zip(community_sets_lengths, cumsum_lengths):
-            start = count - length
-            end = count
-            community_sets_pos.append((start, end))
-            community_vertex_maps.append(
-                    {c: v for c, v in zip(range(length), range(start, end))}
-                        )
-
-        n_communities = sum(community_sets_lengths)
-
-        vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
-        len_vocab = len(vocab_all)
- 
-        phylomemetic_links = []
-        for i, (cps, cfs) in enumerate(window(community_sets, 2)):
-            n_cf = len(cfs)
-            logger.info(f'Processing {i+1} of {len(community_sets)-1} periods')
-            if chunksize == 'auto':
-                chunksize_i = int(np.ceil((1 / workers) * n_cf))
-            else:
-                chunksize_i = chunksize
+            mask = ((backward_containment >= min_backward_containment)
+                    & (forward_containment >= min_forward_containment))
+            if np.sum(mask) > 0:
+            # check for perfect links
             
-            with Pool(workers) as pool:
-                phylomemetic_links.append(
-                        pool.map(
-                            find_links,
-                            zip(
-                                cfs,
-                                range(0, len(cfs)),
-                                repeat(cps, n_cf),
-                                repeat(community_sets_pos[i], n_cf),
-                                repeat(element_community_mappings[i], n_cf),
-                                repeat(parent_limit, n_cf),
-                                ),
-                            chunksize=chunksize_i,
-                            )
+                if max_parent_combinations == 1:
+                    jaccard = (match_counts / 
+                            (match_lengths + community_lengths - match_counts))
+                    for match, j in zip(match_ids[mask], jaccard[mask]):
+                        edge_list.append((community_id, match, j, j))
+                else:
+                    match_ids = match_ids[mask]
+                    combos = recursive_combinations(match_ids, max_parent_combinations)
+                    match_combos = []
+                    for combo in combos:
+                        combo_communities = itemgetter(*combo)(communities[i-1])
+                        if type(combo_communities) != tuple:
+                            combo_communities = (combo_communities,)
+                            print(combo_communities)
+                        match_combos.append(set(flatten(combo_communities)))
+                    # match_combos = [set(flatten(itemgetter(*combo)(communities[i-1]))) 
+                    #       for combo in combos]
+                    n_match_combos = len(match_combos)
+                    if n_match_combos > n_largest_combos:
+                        n_largest_combos = n_match_combos
+                        logging.info(('Finding links from {n_match_combos} possible '
+                                    'antecedant combinations.'))
+                    community = set(community)
+
+                    jaccard = [jaccard_similarity_set(community, set(match)) 
+                           for match in match_combos]
+                    j_max = np.max(jaccard)
+                    match_combo_ids = np.nonzero(list(map(lambda x: x == j_max)))[0]
+                    for mci, j in zip(itemgetter(*match_combo_ids)(combos), itemgetter(*match_combo_ids)(jaccard)):
+                        for match in mci:
+                            j = jaccard_set_similarity(community, set(communities[i-1][match]))
+                            edge_list.append(community_id, match, j_max)
+    return edge_list
+
+
+def phylomemetic_graph(steps, communities, min_size=3, max_size=50, 
+        parent_limit=2, workers='auto', chunksize='auto', method='fast', 
+        min_backwards_containment=0, min_forward_containment=0):
+    '''phylomemetic_graph
+
+    Args:
+        steps (:obj:`iter` of :obj:`int`):
+        communities ():
+        min_size (:obj:`int`):
+        max_size (:obj:`int`):
+        parent_limit (:obj:`int`):
+        workers (:obj:`int`):
+        chunksize (:obj:`int`):
+        method (:obj:`str`):
+        min_backwards_containment (:obj:`float`):
+        min_forward_containment (:obj:`float`):
+
+    Returns:
+        g
+        group_link_strength
+        single_link_strength
+        vertex_steps
+        element_vertex_map
+    '''
+    if workers == 'auto':
+        workers = cpu_count() - 1
+
+    communities_filt = []
+    communities_lengths = []
+    element_community_mappings = []
+    for sequences in communities:
+        s_filt = list(filter_by_size(sequences, min_size, max_size))
+        communities_filt.append(s_filt)
+        communities_lengths.append(len(s_filt))
+        element_community_mappings.append(reverse_index(s_filt))
+
+    community_vertex_maps = []
+    communities_offsets = []
+    cumsum_lengths = np.cumsum(communities_lengths)
+
+    for length, count in zip(communities_lengths, cumsum_lengths):
+        start = count - length
+        end = count
+        communities_offsets.append((start, end))
+        community_vertex_maps.append(
+                {c: v for c, v in zip(range(length), range(start, end))})
+
+    n_communities = np.sum(communities_lengths)
+
+    phylomemetic_links = []
+
+    for i, (cps, cfs) in enumerate(window(communities_filt, 2)):
+        n_cf = len(cfs)
+        logger.info(f'Processing {i+1} of {len(communities)-1} periods')
+        if chunksize == 'auto':
+            chunksize_i = int(np.ceil((1 / workers) * n_cf))
+        else:
+            chunksize_i = chunksize
+        
+        with Pool(workers) as pool:
+            phylomemetic_links.append(
+                    pool.map(
+                        find_links,
+                        zip(
+                            cfs,
+                            range(0, len(cfs)),
+                            repeat(cps, n_cf),
+                            repeat(communities_offsets[i], n_cf),
+                            repeat(element_community_mappings[i], n_cf),
+                            repeat(parent_limit, n_cf),
+                            ),
+                        chunksize=chunksize_i,
                         )
-                pool.close()
-                pool.join()
-        if len(list(self.vertices())) == 0:
-            self.add_vertex(n_communities)
+                    )
+            pool.close()
+            pool.join()
 
-        self.ep['group_link_strength'] = self.new_edge_property('float')
-        self.ep['single_link_strength'] = self.new_edge_property('float')
+    g = Graph(directed=True)
+    g.add_vertex(n_communities)
 
-        phylomemetic_links = flatten(flatten(phylomemetic_links))
-        self.add_edge_list(
-                phylomemetic_links,
-                eprops=[self.ep['group_link_strength'], self.ep['single_link_strength']]
-                )
+    group_link_strength = g.new_edge_property('float')
+    single_link_strength = g.new_edge_property('float')
 
-        community_labels = self.new_vertex_property('int')
-        community_items = self.new_vertex_property('vector<int>')
-        for i, ((start, end), communities) in enumerate(
-                zip(community_sets_pos, community_sets)):
-            vertices = range(start, end)
-            for vertex, c in zip(vertices, communities):
-                community_items[vertex] = np.array(list(c))
-                community_labels[vertex] = labels[i]
+    phylomemetic_links = flatten(flatten(phylomemetic_links))
+    g.add_edge_list(
+            phylomemetic_links,
+            eprops=[group_link_strength, single_link_strength]
+            )
 
-        self.vp['item'] = community_items
-        self.vp['label'] = community_labels
+    element_vertex_map = reverse_index_communities(flatten(communities_filt))
 
-        return self
+    vertex_steps = g.new_vertex_property('int')
+    for (start, end), step in zip(communities_offsets, steps):
+        vertex_steps.a[start:end] = step
 
-    def filter_communities(self, cliques_set, min_clique_size):
-        """filter_communities
-        Returns the communities in a series that are larger than the minimum
-        community size.
+    return (g, group_link_strength, single_link_strength, 
+            vertex_steps, element_vertex_map)
 
-        Args:
-            cliques_set (:obj:`iter` of :obj:`iter`): Series of iterables
-                containing the vertices that make up cliques.
-            min_clique_size (int): The threshold size.
-
-        Returns:
-            csf (:obj:`iter` of :obj:`iter`): Series of filtered cliques that
-                have length greater than or equal to min_clique_size.
-        """
-        csf = [c for c in cliques_set if len(c) >= min_clique_size]
-        return csf
-
+# class PhylomemeticGraph(Graph):
+#     
+#     def __init__(self, *args, **kwargs):
+#         """PhylomemeticGraph
+# 
+#         A graph that links longtitudinal sets of communities using a
+#         "phylomemetic" algorithm (Chavalarias and Cointet 2013).
+#         """
+#         super().__init__(*args, **kwargs)
+# 
+#     def from_communities(self, community_sets, labels=None, min_clique_size=None,
+#             parent_limit=2, workers='auto', chunksize='auto'):
+#         """from_communities
+#         Builds a phylomemetic graph from a set of communities.
+# 
+#         Args:
+#             community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`): Sets of
+#                 elements grouped into communities.
+#             labels (:obj:`iter`): Labels that identify the period at which each
+#                 set of communities occurs.
+#             min_clique_size (int): The minimum community size to be consider for
+#                 for a node in the network.
+#             workers (int): The number of CPUs to use.
+#             parent_limit (int): The maximum combination size for unions of 
+#                 potential parental candidates.
+#             chunksize (int or str): The number of communities for each CPU to
+#                 process with in each process. Default is 'auto'.
+# 
+#         Returns:
+#             self
+#         """
+# 
+#         if workers == 'auto':
+#             workers = cpu_count() - 1
+# 
+#         community_sets_filt = []
+#         community_sets_lengths = []
+#         element_community_mappings = []
+#         for communities in community_sets:
+#             cfsilt = self.filter_communities(
+#                     communities, min_clique_size
+#                     )
+#             community_sets_filt.append(cfsilt)
+#             community_sets_lengths.append(len(cfsilt))
+#             element_community_mappings.append(
+#                 reverse_index_communities(cfsilt)
+#                 )
+# 
+#         community_vertex_maps = []
+#         community_sets_pos = []
+#         cumsum_lengths = np.cumsum(community_sets_lengths)
+#         for length, count in zip(community_sets_lengths, cumsum_lengths):
+#             start = count - length
+#             end = count
+#             community_sets_pos.append((start, end))
+#             community_vertex_maps.append(
+#                     {c: v for c, v in zip(range(length), range(start, end))}
+#                         )
+# 
+#         n_communities = sum(community_sets_lengths)
+# 
+#         vocab_all = list(set(flatten([flatten(c) for c in community_sets])))
+#         len_vocab = len(vocab_all)
+#  
+#         phylomemetic_links = []
+#         for i, (cps, cfs) in enumerate(window(community_sets, 2)):
+#             n_cf = len(cfs)
+#             logger.info(f'Processing {i+1} of {len(community_sets)-1} periods')
+#             if chunksize == 'auto':
+#                 chunksize_i = int(np.ceil((1 / workers) * n_cf))
+#             else:
+#                 chunksize_i = chunksize
+#             
+#             with Pool(workers) as pool:
+#                 phylomemetic_links.append(
+#                         pool.map(
+#                             find_links,
+#                             zip(
+#                                 cfs,
+#                                 range(0, len(cfs)),
+#                                 repeat(cps, n_cf),
+#                                 repeat(community_sets_pos[i], n_cf),
+#                                 repeat(element_community_mappings[i], n_cf),
+#                                 repeat(parent_limit, n_cf),
+#                                 ),
+#                             chunksize=chunksize_i,
+#                             )
+#                         )
+#                 pool.close()
+#                 pool.join()
+#         if len(list(self.vertices())) == 0:
+#             self.add_vertex(n_communities)
+# 
+#         self.ep['group_link_strength'] = self.new_edge_property('float')
+#         self.ep['single_link_strength'] = self.new_edge_property('float')
+# 
+#         phylomemetic_links = flatten(flatten(phylomemetic_links))
+#         self.add_edge_list(
+#                 phylomemetic_links,
+#                 eprops=[self.ep['group_link_strength'], self.ep['single_link_strength']]
+#                 )
+# 
+#         community_labels = self.new_vertex_property('int')
+#         community_items = self.new_vertex_property('vector<int>')
+#         for i, ((start, end), communities) in enumerate(
+#                 zip(community_sets_pos, community_sets)):
+#             vertices = range(start, end)
+#             for vertex, c in zip(vertices, communities):
+#                 community_items[vertex] = np.array(list(c))
+#                 community_labels[vertex] = labels[i]
+# 
+#         self.vp['item'] = community_items
+#         self.vp['label'] = community_labels
+# 
+#         return self
+# 
+#     def filter_communities(self, cliques_set, min_clique_size):
+#         """filter_communities
+#         Returns the communities in a series that are larger than the minimum
+#         community size.
+# 
+#         Args:
+#             cliques_set (:obj:`iter` of :obj:`iter`): Series of iterables
+#                 containing the vertices that make up cliques.
+#             min_clique_size (int): The threshold size.
+# 
+#         Returns:
+#             csf (:obj:`iter` of :obj:`iter`): Series of filtered cliques that
+#                 have length greater than or equal to min_clique_size.
+#         """
+#         csf = [c for c in cliques_set if len(c) >= min_clique_size]
+#         return csf
+# 
