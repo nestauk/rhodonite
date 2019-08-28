@@ -96,6 +96,15 @@ def clear_graph(g):
         for v in reversed(sorted(g.vertices())):
             g.remove_vertex(v)
 
+def reverse_index(sequences):
+    '''reverse_index
+    '''
+    mapping = defaultdict(list)
+    for i, seq in enumerate(sequences):
+        for e in seq:
+            mapping[e].append(i)
+    return mapping
+
 def edge_property_as_matrix(g, prop_name):
     """edge_property_as_matrix
     Returns an edge property as a matrix. If the graph is undirected, a
@@ -270,4 +279,21 @@ def clique_unions(clique_indices, limit):
         for combo in itertools.combinations(clique_indices, l):
             combos.append(tuple(combo))
     return combos
+
+def recursive_combinations(iterable, limit):
+    """recursive_combinations
+    Create combinations of cliques up to limit.
+    Args:
+        clique_indices (:obj:`iter` of int): List of indices of cliques.
+        limit (int): The maximum number of cliques in each union.
+    Returns:
+        combos (:obj:`iter` of :obj:`iter` of int): Tuples of clique
+            combinations.
+    """
+    combos = []
+    for l in range(1, limit + 1):
+        for combo in itertools.combinations(iterable, l):
+            yield combo
+#             combos.append(tuple(combo))
+#     return combos
 
