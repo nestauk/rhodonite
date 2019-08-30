@@ -1,6 +1,3 @@
-.. image:: ./img/rhodonite_500_77.png
-    :width: 200 px
-
 .. start-badges
 
 .. list-table::
@@ -43,7 +40,7 @@
 ..     :target: https://pypi.python.org/pypi/rhodonite
 
 
-end-badges
+.. end-badges
 
 Welcome to the Rhodonite repository!
 
