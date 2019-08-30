@@ -1,9 +1,19 @@
-rhodonite
-=========
+rhodonite package
+=================
 
-.. testsetup::
+Subpackages
+-----------
 
-    from rhodonite import *
+.. toctree::
+
+   rhodonite.cli
+   rhodonite.cooccurrence
+   rhodonite.utils
+
+Module contents
+---------------
 
 .. automodule:: rhodonite
-    :members:
+   :members:
+   :undoc-members:
+   :show-inheritance:

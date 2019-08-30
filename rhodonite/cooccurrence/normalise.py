@@ -10,12 +10,12 @@ def association_strength(g, o_vprop, co_eprop, log=False):
     The assocation strength is calculated as defined in van Eck 2009.
 
     .. math::
-        a = \frac{2 N c_{ij}}{o_{i} o{j}}
+       a = \\frac{2 N c_{ij}}{o_{i} o{j}}
     
     if the graph is directed, or
 
     .. math::
-        a = \frac{N c_{ij}}{o_{i} o{j}}
+       a = \\frac{N c_{ij}}{o_{i} o{j}}
     
     if the graph is undirected, where N is the total number of cooccurrences, 
     :math:`c_{ij}` is the number of cooccurrences between vertices :math:`i` 
@@ -64,7 +64,7 @@ def conditional_probability(g, occurrence_vprop, cooccurrence_eprop, log=False):
     :math:`j` is
 
     .. math::
-        p_{i,j} = \frac{c_{ij}}{o_{j}}
+        p_{i,j} = \\frac{c_{ij}}{o_{j}}
 
     where :math:`c_{ij}` is the cooccurrence frequency between vertices :math:`i`
     and :math:`j`, and :math:`o_{j}` is the vertex occurrence frequency of 
@@ -87,6 +87,8 @@ def conditional_probability(g, occurrence_vprop, cooccurrence_eprop, log=False):
             base 10.
 
     Returns:
+        (:obj:`tuple`): tuple containing:
+
         c_p (:obj:`graph_tool.PropertyMap`): An edge property mapping the 
             conditional probability to each edge. Only returned if `g` is 
             directed.
@@ -97,6 +99,7 @@ def conditional_probability(g, occurrence_vprop, cooccurrence_eprop, log=False):
             conditional probability of the target vertices given the source vertices
             for each edge. Only returned if `g` is undirected.
     """
+
     if g.is_directed():
         c_p = g.new_edge_property('float')
         o_target = edge_endpoint_property(g, occurrence_vprop, 'target')
