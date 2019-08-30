@@ -2,7 +2,9 @@
 from __future__ import unicode_literals
 
 import os
+import sys
 
+sys.path.insert(0, os.path.abspath('../rhodonite'))
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -47,6 +49,7 @@ html_sidebars = {
    '**': ['searchbox.html', 'globaltoc.html', 'sourcelink.html'],
 }
 html_short_title = '%s-%s' % (project, version)
+html_logo = '../img/rhodonite_500_77.png'
 
 napoleon_use_ivar = True
 napoleon_use_rtype = False
