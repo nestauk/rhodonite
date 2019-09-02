@@ -6,13 +6,16 @@ def vertices_to_dataframe(g, vectors=False, keys=None):
     """vertices_to_dataframe
     Transforms a graph's vertices and their properties into a tabular format.
 
-    Args:
-        g (:obj:`Graph`): A graph.
-        keys (:obj:`iter` of str): A list of property map keys to convert in
-            to columns. If None, all property maps are converted. Default is
-            None.
-    Returns:
-        vertex_df (:obj:`DataFrame`): A dataframe where each row represents a 
+    Parameters
+    ----------
+        g : :obj:`Graph`
+            A graph.
+        keys : :obj:`iter` of :obj:`str`, optional
+            A list of property map keys to convert in to columns. If None, all 
+            property maps are converted. Default is None.
+    Returns
+    -------
+        vertex_df : :obj:`DataFrame` A dataframe where each row represents a 
             vertex and the columns are properties of those edges. By default, 
             the dataframe will contain a column with the vertex id.
     """
@@ -44,16 +47,21 @@ def edges_to_dataframe(g, keys=None, drop_keys=[], sort=None, vectors=False):
     """edges_to_dataframe
     Transforms a graph's edges and their properties into a tabular format.
 
-    Args:
-        g (:obj:`Graph`): A graph.
-        keys (:obj:`iter` of str): A list of property map keys to convert in
+    Parameters
+    ----------
+        g : :obj:`Graph` 
+            A graph.
+        keys : :obj:`iter` of :obj:`str`, optional
+            A list of property map keys to convert in
             to columns. If None, all property maps are converted. Default is
             None.
-    Returns:
-        edge_df (:obj:`DataFrame`): A dataframe where each row represents an 
-            edge and the columns are properties of those edges. By default, the 
-            dataframe will contain a column for the source vertices and another
-            for the target vertices.
+    Returns
+    -------
+        edge_df : :obj:`DataFrame` 
+            A dataframe where each row represents an edge and the columns are 
+            properties of those edges. By default, the dataframe will contain 
+            a column for the source vertices and another for the target 
+            vertices.
     """
     edge_df = pd.DataFrame(list(g.edges()), columns=['s', 't'], dtype='int')
     edge_df = pd.DataFrame(g.get_edges(), columns=['s', 't', 'e_index'], dtype='int')
