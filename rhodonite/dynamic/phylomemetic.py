@@ -28,12 +28,15 @@ def label_ages(g):
     a property map. The age is defined as the number of steps between
     a vertex and its most distant antecedent.
     
-    Args:
-        g (:obj:`Graph`): A graph.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` 
+            A graph.
         
-    Returns:
-        age_vp (:obj:`PropertyMap(`): A property map containing
-            the age of each vertex.
+    Returns
+    -------
+        age_vp : :obj:`graph_tool.VertexPropertyMap` 
+            A property map containing the age of each vertex.
     """
     age_vp = g.new_vertex_property('int')
     for v in g.vertices():
@@ -50,15 +53,17 @@ def community_density(community, co_graph, density_prop, fill=0):
     Calculate the density of a clique based on the number of occurrences
     and coocurrences of the terms within it. Based on Callon et al. 1991.
 
-    Args:
-        community (:obj:`iter` of int): A set of terms that comprise
-            a single clique.
-        g (:obj:`Graph`): The coocurrence graph from which the clique
-            originated
-        fill (float): A number to fill in for the cooccurrence value if none
-            exists.
-    Returns:
-        density (float): The density of the clique.
+    Parameters
+    ----------
+        community : :obj:`iter` of :obj:`int`: 
+            A set of terms that comprise a single clique.
+        g : :obj:`graph_tool.Graph` 
+            The coocurrence graph from which the clique originated
+        fill :obj:`float`: 
+            A number to fill in for the cooccurrence value if none exists.
+    Returns
+    -------
+        density :obj:`float`: The density of the clique.
     """
     card = len(community)
     densities = density_prop.a[community]
@@ -71,14 +76,18 @@ def label_density(g, cooccurrence_graphs, norm=None):
     contained within the community it represents.
     Requires a cooccurrence graphs.
 
-    Args:
-        g (:obj:`PhylomemeticGraph`): A phylomemetic graph.
-        cooccurrence_graphs (:obj:`iter` of :obj:`CooccurrenceGraph`): A list
-            of cooccurrence graphs for each time period.
-        norm (function): A normalisation function.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` 
+            A graph.
+        cooccurrence_graphs : :obj:`iter` of :obj:`Graph` 
+            A list of cooccurrence graphs for each time period.
+        norm :obj:`function`: 
+            A normalisation function.
 
-    Returns:
-        community_densities (:obj:`PropertyMap`): A property map containing the
+    Returns
+    -------
+        community_densities : :obj:`PropertyMap` A property map containing the
             densities of the phylomemetic graph vertices.
     """
     community_densities = g.new_vertex_property('float')
@@ -117,12 +126,16 @@ def label_emergence(g):
          2: 'steady',
          3: 'declining'}
          
-    Args:
-        g (:obj:`Graph`): A graph.
+    Parameters
+    ----------
+        g : :obj:`Graph`
+            A graph.
 
-    Returns:
-        emergence (:obj:`PropertyMap`): An integer property map that represents
-            the emergence category of each vertex.
+    Returns
+    -------
+        emergence : :obj:`graph_tool.VertexPropertyMap` 
+            An integer property map that represents the emergence category of 
+            each vertex.
     """
     emergence = g.new_vertex_property('int')
     for v in g.vertices():
@@ -145,14 +158,19 @@ def label_special_events(g):
     Creates property maps that identify whether a vertex belongs to the
     possible categories of "special events": branching or merging.
     
-    Args:
-        g (:obj:`Graph`): A graph.
+    Parameters
+    ----------
+        g : :obj:`Graph` 
+            A graph.
 
-    Returns:
-        branching (:obj:`PropertyMap`): A boolean property map that is True
-            where a vertex's out degree is greater than 1.
-        merging (:obj:`PropertyMap`): A boolean property map that is True where
-            a vertex's in degree is greater than 1.
+    Returns
+    -------
+        branching : :obj:`graph_tool.VertexPropertyMap` 
+            A boolean property map that is True where a vertex's out degree is 
+            greater than 1.
+        merging : :obj:`graph_tool.VertexPropertyMap` 
+            A boolean property map that is True where a vertex's in degree is 
+            greater than 1.
     """
     branching = g.new_vertex_property('bool')
     merging = g.new_vertex_property('bool')
@@ -168,12 +186,19 @@ def label_cross_pollination(g, merging_prop, agg=np.mean):
     Cross-pollination is defined as the average pairwise Jaccard similarity
     between the parents of a merging node.
 
-    Args:
-        g (:obj:`Graph`): A phylomemetic graph.
-        merging_prop (:obj:`PropertyMap`): A verted property map that is True
-            where a vertex is a merging node.
-        agg(:obj:`function`): An aggregation function. Typically mean or
-            median.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` 
+            A graph.
+        merging_prop : :obj:`graph_tool.VertexPropertyMap` 
+            A vertex property map that is True where a vertex is a merging node.
+        agg: :obj:`function` 
+            An aggregation function. Typically mean or median.
+
+    Returns
+    -------
+        cross_pol_prop : :obj:`graph_tool.VertexPropertyMap`
+            Contains cross pollination values of each vertex.
     """
     cross_poll_prop = g.new_vertex_property('float')
     g_merging = GraphView(g, vfilt=merging_prop, skip_efilt=True)
@@ -191,12 +216,15 @@ def label_diversification(g, branching_prop, agg=np.mean):
     Diversification is defined as the average pairwise Jaccard similarity
     between the children of a branching node.
 
-    Args:
-        g (:obj:`Graph`): A phylomemetic graph.
-        branching_prop (:obj:`PropertyMap`): A verted property map that is True
-            where a vertex is a branching node.
-        agg(:obj:`function`): An aggregation function. Typically mean or
-            median.
+    Parameters
+    ----------
+        g : :obj:`Graph` 
+            A graph.
+        branching_prop : :obj:`graph_tool.VertexPropertyMap` 
+            A verted property map that is True where a vertex is a branching 
+            node.
+        agg: :obj:`function` 
+            An aggregation function. Typically mean or median.
     """
     diversification_prop = g.new_vertex_property('float')
     g_branching = GraphView(g, vfilt=branching_prop, skip_efilt=True)
@@ -215,13 +243,17 @@ def label_item_emergence(g):
     emerging. An item is defined as emerging if it appears for the first time in
     the network.
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-    Returns:
-        item_emergence_count (:obj:`graph_tool.PropertyMap`): Property map
-            with values representing the number of emerging items in a vertex.
-        item_emergence_item (:obj:`graph_tool.PropertyMap`): Property map
-            with a list of emerging items for each vertex.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` 
+            A graph.
+    Returns
+    -------
+        item_emergence_count : :obj:`graph_tool.VertexPropertyMap` 
+            Property map with values representing the number of emerging items 
+            in a vertex.
+        item_emergence_item : :obj:`graph_tool.VertexPropertyMap` 
+            Property map with a list of emerging items for each vertex.
     """
     item_emergence_count = g.new_vertex_property('int')
     item_emergence_item = g.new_vertex_property('vector<int>')
@@ -244,21 +276,23 @@ def label_item_inheritance(g, item_emergence_item_prop):
     the community. An item is reconducting for a community if it exists in a
     direct parent of the community.
     
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        item_emergence_item_prop (:obj:`graph_tool.PropertyMap`): Items that
-            are emerging as calculated by label_item_emergence.
-    Returns:
-        item_recombination_count (:obj:`graph_tool.PropertyMap`): Property map
-            with values representing the number of recombining items in a
-            vertex.
-        item_recombination_item (:obj:`graph_tool.PropertyMap`): Property map
-            with a list of recombining items for each vertex.
-        item_reconduction_count (:obj:`graph_tool.PropertyMap`): Property map 
-            with values representing the number of reconducting items in a
-            vertex.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` A graph.
+        item_emergence_item_prop : :obj:`graph_tool.VertexPropertyMap` 
+            Items that are emerging as calculated by label_item_emergence.
+    Returns
+    -------
+        item_recombination_count : :obj:`graph_tool.VertexPropertyMap` 
+            Property map with values representing the number of recombining 
+            items in a vertex.
+        item_recombination_item : :obj:`graph_tool.VertexPropertyMap` 
+            Property map with a list of recombining items for each vertex.
+        item_reconduction_count : :obj:`graph_tool.VertexPropertyMap` 
+            Property map with values representing the number of reconducting 
+            items in a vertex.
             
-        item_reconduction_item (:obj:`graph_tool.PropertyMap`): Property map
+        item_reconduction_item : :obj:`graph_tool.PropertyMap` Property map
             with a list of reconducting items for each vertex.
     """
     item_reconduction_count = g.new_vertex_property('int')
@@ -313,7 +347,8 @@ def reverse_mapping(g):
     Returns the reverse mapping of items to vertices for the graph. If it
     does not exist, it is created.
 
-    Returns:
+    Returns
+    -------
         self.reverse_mapping (dict): A mapping of community items to sets
             of vertices.
     """
@@ -333,31 +368,39 @@ def find_links(args):
     Finds the inter-temporal links between a clique at time period and cliques
     occurring at previous time periods.
 
-    Args:
-        cf (:obj:`iter` of int): The clique for which parents are being
-            identified.
-        cfi (int): The clique index relative to all cliques in the phylomemy.
-        cps (:obj:`iter` of :obj:`iter` of int): The cliques from the
-            immediately previous time period to cf.
-        pos (:obj:`tuple`): The start and end vertices in the previous time
-            period.
-        cpm (:obj:`scipy.sparse`): Binarized sparse matrix of communties from
-            previous time period.
-        mapping (:obj:`dict`): Maps community elements to communities.
-        binarizer (:obj:`MultiLabelBinarizer`): A multi label binarizer fitted
-            to the entire vocabulary across all cliques.
-        parent_limit (int): The limit for the size of possible combinations
-            of potential parent cliques that will be considered.
-        threshold (float): The minimum percentile for the Jaccard similartiy
-            between parents and children, below which parent candidates will
-            be discarded.
+    Parameters
+    ----------
+        args : :obj:`tuple`, Contains:
+        cf : :obj:`iter` of :obj:`int`: 
+            The clique for which parents are being identified.
+        cfi :obj:`int`: 
+            The clique index relative to all cliques in the phylomemy.
+        cps : :obj:`iter` of :obj:`iter` of :obj:`int`: 
+            The cliques from the immediately previous time period to cf.
+        pos : :obj:`tuple` 
+            The start and end vertices in the previous time period.
+        cpm : :obj:`scipy.sparse` 
+            Binarized sparse matrix of communties from previous time period.
+        mapping : :obj:`dict` 
+            Maps community elements to communities.
+        binarizer : :obj:`MultiLabelBinarizer` 
+            A multi label binarizer fitted to the entire vocabulary across all 
+            cliques.
+        parent_limit :obj:`int`: 
+            The limit for the size of possible combinations of potential parent 
+            cliques that will be considered.
+        threshold :obj:`float`: 
+            The minimum percentile for the Jaccard similartiy between parents 
+            and children, below which parent candidates will be discarded.
     
-    Returns:
-        links: (:obj: `list`): A list that contains the inter-temporal edges
-            that have been found as well as the corresponding Jaccard indexes.
-            Each element is of the format:
-            ((source, target), group_jaccard_index, single_jaccard_index).
-            group_jaccard_index is the Jaccard index of any union of parents
+    Returns
+    -------
+        links : :obj:`list` 
+            A list that contains the inter-temporal edges that have been found 
+            as well as the corresponding Jaccard indexes. Each element is of the
+            format: 
+            `((source, target), group_jaccard_index, single_jaccard_index)`.
+            `group_jaccard_index` is the Jaccard index of any union of parents
             that has been identified as the most likely antecedants of the and
             single_jaccard_index is the individual Jaccard similarity between
             each potential parent and the child.
@@ -422,13 +465,16 @@ def filter_by_size(sequences, min_size=None, max_size=None):
     Returns the communities in a series that are larger than the minimum
     community size.
 
-    Args:
-        cliques_set (:obj:`iter` of :obj:`iter`): Series of iterables
-            containing the vertices that make up cliques.
-        min_size (int): The threshold size.
+    Parameters
+    ----------
+        cliques_set : :obj:`iter` of :obj:`iter` 
+            Series of iterables containing the vertices that make up cliques.
+        min_size :obj:`int`: 
+            The threshold size.
 
-    Returns:
-        (:obj:`filter`):
+    Returns
+    -------
+        :obj:`filter`
     """
     if (min_size is not None) & (max_size is not None):
         f = lambda x: (len(x) >= min_size) & (len(x) <= max_size)
@@ -443,7 +489,9 @@ def filter_by_size(sequences, min_size=None, max_size=None):
 def find_links_fast(communities_grouped, max_parent_combinations, offsets,
         min_forward_containment=0, min_backward_containment=0, 
         reverse_mappings=None):
-    # import pdb; pdb.set_trace()
+    """find_links_fast
+    Under development.
+    """
     
     n_largest_combos = 0
     edge_list = []
@@ -517,24 +565,26 @@ def phylomemetic_graph(steps, communities, min_size=3, max_size=50,
         min_backwards_containment=0, min_forward_containment=0):
     '''phylomemetic_graph
 
-    Args:
-        steps (:obj:`iter` of :obj:`int`):
-        communities ():
-        min_size (:obj:`int`):
-        max_size (:obj:`int`):
-        parent_limit (:obj:`int`):
-        workers (:obj:`int`):
-        chunksize (:obj:`int`):
-        method (:obj:`str`):
-        min_backwards_containment (:obj:`float`):
-        min_forward_containment (:obj:`float`):
+    Parameters
+    ----------
+        steps : :obj:`iter` of :obj:`int`
+        communities : :obj:`iter` of :obj:`iter` of :obj:`int`
+        min_size : :obj:`int`
+        max_size : :obj:`int`
+        parent_limit : :obj:`int`
+        workers : :obj:`int`
+        chunksize : :obj:`int`
+        method : :obj:`str`
+        min_backwards_containment : :obj:`float`
+        min_forward_containment : :obj:`float`
 
-    Returns:
-        g
-        group_link_strength
-        single_link_strength
-        vertex_steps
-        element_vertex_map
+    Returns
+    -------
+        g : :obj:`graph_too.Graph`
+        group_link_strength : :obj:`graph_tool.EdgePropertyMap`
+        single_link_strength : :obj:`graph_tool.EdgePropertyMap`
+        vertex_steps : :obj:`graph_tool.VertexPropertyMap`
+        element_vertex_map : :obj:`dict`
     '''
     if workers == 'auto':
         workers = cpu_count() - 1
@@ -625,10 +675,11 @@ def phylomemetic_graph(steps, communities, min_size=3, max_size=50,
 #         """from_communities
 #         Builds a phylomemetic graph from a set of communities.
 # 
-#         Args:
-#             community_sets (:obj:`iter` of :obj:`iter` of :obj:`iter`): Sets of
+#         Parameters
+#     ----------
+#             community_sets : :obj:`iter` of :obj:`iter` of :obj:`iter` Sets of
 #                 elements grouped into communities.
-#             labels (:obj:`iter`): Labels that identify the period at which each
+#             labels : :obj:`iter` Labels that identify the period at which each
 #                 set of communities occurs.
 #             min_clique_size (int): The minimum community size to be consider for
 #                 for a node in the network.
@@ -638,7 +689,8 @@ def phylomemetic_graph(steps, communities, min_size=3, max_size=50,
 #             chunksize (int or str): The number of communities for each CPU to
 #                 process with in each process. Default is 'auto'.
 # 
-#         Returns:
+#         Returns
+#     -------
 #             self
 #         """
 # 
@@ -731,13 +783,15 @@ def phylomemetic_graph(steps, communities, min_size=3, max_size=50,
 #         Returns the communities in a series that are larger than the minimum
 #         community size.
 # 
-#         Args:
-#             cliques_set (:obj:`iter` of :obj:`iter`): Series of iterables
+#         Parameters
+#     ----------
+#             cliques_set : :obj:`iter` of :obj:`iter` Series of iterables
 #                 containing the vertices that make up cliques.
 #             min_clique_size (int): The threshold size.
 # 
-#         Returns:
-#             csf (:obj:`iter` of :obj:`iter`): Series of filtered cliques that
+#         Returns
+#     -------
+#             csf : :obj:`iter` of :obj:`iter` Series of filtered cliques that
 #                 have length greater than or equal to min_clique_size.
 #         """
 #         csf = [c for c in cliques_set if len(c) >= min_clique_size]

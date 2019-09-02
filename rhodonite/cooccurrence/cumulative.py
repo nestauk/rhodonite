@@ -11,25 +11,30 @@ from rhodonite.cooccurrence.basic import cooccurrence_counts
 def cumulative_cooccurrence_graph(steps, sequences, directed=False):
     '''cumulative_cooccurrence_graph
 
-    Args:
-        steps (:obj:`iter` of :obj:`int` or :obj:`str`): A series that contains
-            sequential labels for the nested groups.
-        sequences (:obj:`iter` of :obj:`iter` of :obj:`int`): Nested iterable
-            of integers representing vertices in the graph. Number of nested
-            iterables should be equal to `len(steps)`.
-        directed (:obj:`bool`): Currently has no effect. In future this will
-            determine whether to build a bi-directional cooccurrence graph.
-    Returns:
-        g (:obj:`graph_tool.Graph`): A graph. Vertices are elements. Edges
-            link terms that have cooccurred at least once in the series.
-        o_props (:obj:`dict`): Property maps with vertex occurrence values at
-             each step.
-        o_cumsum_props (:obj:`dict`): Property maps with cumulative vertex
-            cooccurrence values at each step.
-        co_props (:obj:`dict`): Property maps with edge cooccurrnce values
-            at each step.
-        co_cumsum_props (:obj:`dict`): Property maps with cumulative edge
-            cooccurrence values at each step.
+    Parameters
+    ----------
+    steps : :obj:`iter` of :obj:`int` or :obj:`str` 
+        A series that contains sequential labels for the nested groups.
+    sequences : :obj:`iter` of :obj:`iter` of :obj:`int` 
+        Nested iterable of integers representing vertices in the graph. Number 
+        of nested iterables should be equal to `len(steps)`.
+    directed : :obj:`bool` 
+        Currently has no effect. In future this will determine whether to build 
+        a bi-directional cooccurrence graph.
+
+    Returns
+    -------
+    g : :obj:`graph_tool.Graph`
+        A graph. Vertices are elements. Edges link terms that have cooccurred 
+        at least once in the series.
+    o_props : :obj:`dict` 
+        Property maps with vertex occurrence values at each step.
+    o_cumsum_props : :obj:`dict` 
+        Property maps with cumulative vertex cooccurrence values at each step.
+    co_props : :obj:`dict` 
+        Property maps with edge cooccurrnce values at each step.
+    co_cumsum_props : :obj:`dict`
+        Property maps with cumulative edge cooccurrence values at each step.
     '''
 
     g = Graph(directed=directed)
@@ -94,13 +99,18 @@ def label_cumulative_cooccurrence(g, co_props):
     Calculates the cumulative cooccurrence values for edges in a graph using
     the edge cooccurrence values.
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        co_props (:obj:`dict`): Contains `PropertyMaps` of edge cooccurrence
-            values.
-    Returns:
-        co_cumsum_props (:obj:`dict`): Contains `PropertyMaps` of type `int` with
-        edge cumulative cooccurrence values.
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph`
+        A graph.
+    co_props : :obj:`dict`
+        Contains property maps of edge cooccurrence values.
+
+    Returns
+    -------
+    co_cumsum_props : :obj:`dict`
+        Contains property maps of type `int` with edge cumulative cooccurrence 
+        values.
     '''
     co_cumsum_props = {}
     for i, (step, co_prop) in enumerate(co_props.items()):
@@ -117,13 +127,18 @@ def label_cumulative_occurrence(g, o_props):
     Calculates the cumulative occurrence values for vertices in a graph using
     the vertex occurrence values.
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        o_props (:obj:`dict`): Contains `PropertyMaps` of vertex occurrence
-            values.
-    Returns:
-        o_cumsum_props (:obj:`dict`): Contains `PropertyMaps` of type 'int' with
-        vertex cumulative occurrence values.
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph` 
+        A graph.
+    o_props : :obj:`dict` 
+        Contains property maps of vertex occurrence values.
+
+    Returns
+    -------
+    o_cumsum_props : :obj:`dict` 
+        Contains property maps of type 'int' with vertex cumulative occurrence 
+        values.
     """
     o_cumsum_props = {}
     for i, (step, o_prop) in enumerate(o_props.items()):
@@ -140,13 +155,17 @@ def label_active_edge(g, co_props):
     Determines whether an edge is active (has at least one cooccurrence) at each
     step.
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        co_props (:obj:`dict`): Contains `PropertyMaps` of edge cooccurrence
-            values.
-    Returns:
-        active_edge_props (:obj:`dict`): Contains `PropertyMaps` of type `bool`
-            that is True if an edge is active.
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph`
+        A graph.
+    co_props : :obj:`dict`
+        Contains property maps of edge cooccurrence values.
+
+    Returns
+    -------
+    active_edge_props : :obj:`dict` 
+        Contains property maps of type `bool` that is True if an edge is active.
     '''
     active_edge_props = {}
     for step, co_prop in co_props.items():
@@ -159,19 +178,24 @@ def label_new_edge(g, co_props, label_old=True, label_steps=False):
     '''label_new_edge
     Determines whether an edge has appeared for the first time at a given step.
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        co_props (:obj:`dict`): Contains `PropertyMaps` of edge cooccurrence
-            values.
-        label_old (:obj:`bool`): If True will also return `PropertyMaps` that
-            indicate whether an edge has existed at a previous step.
-        label_steps (:obj:`bool`): If True will also return a `PropertyMap` of
-            type `int` that indicates the step at which an edge first appeared.
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph` 
+        A graph.
+    co_props : :obj:`dict` 
+        Contains property maps of edge cooccurrence values.
+    label_old : :obj:`bool` 
+        If True will also return property maps that indicate whether an edge 
+        has existed at a previous step. Defaults to True.
+    label_steps : :obj:`bool` 
+        If True will also return a property map of type `int` that indicates 
+        the step at which an edge first appeared.
 
-    Returns:
-        new_edge_props (:obj:`dict`):
-        old_edge_props (:obj:`dict`):
-        edge_step_prop (:obj:`PropertyMap`):
+    Returns
+    -------
+    new_edge_props : :obj:`dict`
+    old_edge_props : :obj:`dict`
+    edge_step_prop : :obj:`PropertyMap`
         
         
     '''
@@ -216,15 +240,18 @@ def label_edge_activity(g, co_props):
     Determines whether an edge is new, reinforcing or inactive at any given 
     step.
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        co_props (:obj:`dict`): Contains `PropertyMaps` of edge cooccurrence
-            values.
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph`
+        A graph.
+    co_props : :obj:`dict` 
+        Contains property maps of edge cooccurrence values.
 
-    Returns:
-        new_edge_props (:obj:`dict`):
-        reinforcing_edge_props (:obj:`dict`):
-        inactive_edge_props (:obj:`dict`):
+    Returns
+    -------
+        new_edge_props : :obj:`dict`
+        reinforcing_edge_props : :obj:`dict`
+        inactive_edge_props : :obj:`dict`
     '''
     reinforcing_edge_props = {}
     inactive_edge_props = {}
@@ -246,16 +273,21 @@ def label_edge_activity(g, co_props):
 def label_new_vertex(g, o_props, label_steps=False):
     '''label_new_vertex
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        o_props (:obj:`dict`): A dictionary of `PropertyMaps` containing the 
-            vertex occurrence values at each step.
-        label_steps (:obj:`bool`): Returns a `PropertyMap` that indicates the
-            first step that each vertex appeared.
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph` 
+        A graph.
+    o_props : :obj:`dict` 
+        A dictionary of vertex property maps containing the vertex occurrence 
+        values at each step.
+    label_steps : :obj:`bool` 
+        If `True`, returns a vertex property map` that indicates the first step
+        that each vertex appeared.
 
-    Returns:
-        new_vertex_props (:obj:`dict`):
-        vertex_step_prop (:obj:`graph_tool.PropertyMap`):
+    Returns
+    -------
+        new_vertex_props : :obj:`dict`
+        vertex_step_prop : :obj:`graph_tool.PropertyMap`
     '''
     new_vertex_props = {}
     _vertex_tracker = g.new_vertex_property('bool')
@@ -286,15 +318,18 @@ def label_linkage(g, new_eprops, new_vprops):
         in the graph.
      - Mature: edges that connect two pre-existing vertices.
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        new_eprops (:obj:`dict`):
-        new_vprops (:obj:`dict`):
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph` 
+        A graph.
+    new_eprops : :obj:`dict`
+    new_vprops : :obj:`dict`
 
-    Returns:
-        additive_eprops (:obj:`dict`):
-        extending_eprops (:obj:`dict`):
-        joining_eprops (:obj:`dict`):
+    Returns
+    -------
+    additive_eprops : :obj:`dict`
+    extending_eprops : :obj:`dict`
+    joining_eprops : :obj:`dict`
     """
     
     additive_eprops = {}
@@ -329,14 +364,16 @@ def label_k_score(g, co_cumsum_eprops, first=True):
     Calculates the K score for each existing edge at each step:
 
     .. math::
-        k_{ij, T} = \frac{1}{1 + C_{ij, T-1}}
+        k_{ij, T} = \\frac{1}{1 + C_{ij, T-1}}
 
-    Args:
-        g (:obj:`graph_tool.Graph`):
-        co_cumsum_eprops (:obj:`dict`):
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph`
+    co_cumsum_eprops : :obj:`dict`
 
-    Returns:
-        k_score_eprops (:obj:`dict`):
+    Returns
+    -------
+    k_score_eprops : :obj:`dict`
     '''
     k_score_eprops = {}
     for i, step in enumerate(co_cumsum_eprops.keys()):
@@ -355,15 +392,21 @@ def label_k_growth(g, co_eprops, co_cumsum_eprops):
     Calculates the K growth score for edges at each step.
 
     .. math::
-        k_{ij, T} = \frac{c_{ij, T}}{1 + C_{ij, T-1}}
+        k_{ij, T} = \\frac{c_{ij, T}}{1 + C_{ij, T-1}}
 
-    Args:
-        g (:obj:`graph_tool.Graph`): A graph.
-        co_eprops (:obj:`dict`): Contains edge cooccurrence property maps.
-        co_cumsum_eprops (:obj:`dict`): Contains edge cumulative cooccurrence
-            property maps.
-    Returns:
-        k_growth_eprops (:obj:`dict`): Contains edge k growth property maps.
+    Parameters
+    ----------
+    g : :obj:`graph_tool.Graph`
+        A graph.
+    co_eprops : :obj:`dict` 
+        Contains edge cooccurrence property maps.
+    co_cumsum_eprops : :obj:`dict` 
+        Contains edge cumulative cooccurrence
+        property maps.
+
+    Returns
+    -------
+        k_growth_eprops : :obj:`dict` Contains edge k growth property maps.
     '''
     k_growth_eprops = {}
     for i, (step, co_eprop) in enumerate(co_eprops.items()):

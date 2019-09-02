@@ -14,20 +14,23 @@ def cooccurrence_graph(sequences, directed=False):
     '''cooccurrence_graph
     Creates a cooccurrence graph from a nested sequence.
 
-    Args:
-        sequences (:obj:`iter` of :obj:`iter` of :obj:`int`): A nested 
-            list-like object containing groups of vertices represented by
-            integers.
-        directed (:obj:`bool`): If `True`, then each coocurring pair will be 
-            linked by a pair of antiparallel edges, each with an equal weight. 
-            Defaults to `False`.
+    Parameters
+    ----------
+    sequences : :obj:`iter` of :obj:`iter` of :obj:`int` 
+        A nested list-like object containing groups of vertices represented by
+        integers.
+    directed : :obj:`bool`, optional  
+        If `True`, then each coocurring pair will be linked by a pair of 
+        antiparallel edges, each with an equal weight. Defaults to `False`.
     
-    Returns:
-        g (:obj:`graph_tool.Graph`): A cooccurrence graph.
-        o (:obj:`graph_tool.PropertyMap`): A vertex property map of vertex 
-            occurrence frequency.
-        co (:obj:`graph_tool.PropertyMap`): An edge property map of vertex
-           cooccurrence frequency. 
+    Returns
+    -------
+    g : :obj:`graph_tool.Graph`
+        A cooccurrence graph.
+    o : :obj:`graph_tool.VertexPropertyMap`
+        A vertex property map of vertex occurrence frequency.
+    co : :obj:`graph_tool.EdgePropertyMap`
+        An edge property map of vertex cooccurrence frequency. 
     '''
     g = Graph(directed=directed)
 
@@ -49,11 +52,13 @@ def cooccurrence_counts(sequences):
     '''cooccurrence_counts
     Counts the cooccurring pairs from a nested sequence.
 
-    Args:
-        sequences (:obj:`iter` of :obj:`iter`):
+    Parameters
+    ----------
+    sequences : :obj:`iter` of :obj:`iter`
 
-    Returns:
-        (:obj:`collections.Counter`):
+    Returns
+    -------
+    :obj:`collections.Counter`
         
     '''
     combos = (combinations(sorted(sequence), 2) for sequence in sequences)
@@ -70,7 +75,8 @@ def cooccurrence_counts(sequences):
 #         of items. An internalised ``PropertyMap`` provides the edge cooccurrence
 #         value.
 #         
-#         Args:
+#         Parameters
+#      ----------
 #             *args
 #             **kwargs
 # 
@@ -91,11 +97,13 @@ def cooccurrence_counts(sequences):
 #         those where a cooccurrence occurs. The value at point (i, j) is the
 #         number of cooccurrences between the items i and j.
 # 
-#         Args:
+#         Parameters
+#     ----------
 #             matrix:
 #             dictionary:
 # 
-#         Returns:
+#         Returns
+#     -------
 #             self:
 #         """
 #         pass
@@ -110,13 +118,15 @@ def cooccurrence_counts(sequences):
 #         nested sequences, or cooccurrences are counted between all elements in
 #         each sequence.
 # 
-#         Args:
+#         Parameters
+#    ----------
 #             sequences (:obj:`iter` of :obj:`iter` :obj:`iter`):
 #             dictionary (dict):
 #             window_size (int):
 #             distance_agg (function): 
 # 
-#         Returns:
+#         Returns
+#     -------
 #             self
 #         """
 #         num_items = len(dictionary.keys())
@@ -154,7 +164,8 @@ def cooccurrence_counts(sequences):
 #         pairs, and the distances between the pair elements, as they are found
 #         in the sequences.
 # 
-#         Args:
+#         Parameters
+#     ----------
 #             sequences (:obj:`iter` of :obj:`iter`): An iterable containing
 #                 sequences of elements, for which the cooccurrences are to be
 #                 found.
