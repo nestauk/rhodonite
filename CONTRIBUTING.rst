@@ -2,13 +2,19 @@
 Contributing
 ============
 
-Contributions are welcome, and they are greatly appreciated! Every
-little bit helps, and credit will always be given.
+Contributions to Rhodonite are very welcome, and always appreciated!
+
+Rhodonite is a part of Nesta's work towards an `Open Science of Science 
+<https://www.nesta.org.uk/blog/towards-an-open-science-science/>`_.
+
+Every type of contribution makes a huge addition to the project. Tools like
+Rhodonite can only improve and be sustained by the community, and we will always
+give credit for any help recieved.
 
 Bug reports
 ===========
 
-When `reporting a bug <https://github.com/georgerichardson/rhodonite/issues>`_ please include:
+When `reporting a bug <https://github.com/nestauk/rhodonite/issues>`_ please include:
 
     * Your operating system name and version.
     * Any details about your local setup that might be helpful in troubleshooting.
@@ -17,14 +23,21 @@ When `reporting a bug <https://github.com/georgerichardson/rhodonite/issues>`_ p
 Documentation improvements
 ==========================
 
-rhodonite could always use more documentation, whether as part of the
-official rhodonite docs, in docstrings, or even on the web in blog posts,
-articles, and such.
+Rhodonite's documentation could always benefit from further additions, 
+improvements and clarifications, whether as part of the official Rhodonite docs,
+in docstrings, or even on the web in blog posts, articles, and such.
+
+Documentation contributions are among the most important, so never feel like 
+this is an unworthy task!
 
 Feature requests and feedback
 =============================
 
-The best way to send feedback is to file an issue at https://github.com/georgerichardson/rhodonite/issues.
+Rhodonite is a toolbox of network based algorithms for analysing and measuring activity and outputs
+in science, innovation and research. We are always interested in incorporating new methods, so if you
+have been involved in developing one (or several), please get in touch!
+
+The best way to send feedback is to file an issue at https://github.com/nestauk/rhodonite/issues.
 
 If you are proposing a feature:
 
@@ -37,7 +50,7 @@ Development
 
 To set up `rhodonite` for local development:
 
-1. Fork `rhodonite <https://github.com/georgerichardson/rhodonite>`_
+1. Fork `rhodonite <https://github.com/nestauk/rhodonite>`_
    (look for the "Fork" button).
 2. Clone your fork locally::
 
@@ -78,13 +91,13 @@ For merging, you should:
 
        It will be slower though ...
 
-Tips
-----
-
-To run a subset of tests::
-
-    tox -e envname -- pytest -k test_myfeature
-
-To run all the test environments in *parallel* (you need to ``pip install detox``)::
-
-    detox
+.. Tips
+.. ----
+.. 
+.. To run a subset of tests::
+.. 
+..     tox -e envname -- pytest -k test_myfeature
+.. 
+.. To run all the test environments in *parallel* (you need to ``pip install detox``)::
+.. 
+..     detox
