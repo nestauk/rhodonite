@@ -49,7 +49,7 @@ html_sidebars = {
    '**': ['searchbox.html', 'globaltoc.html', 'sourcelink.html'],
 }
 html_short_title = '%s-%s' % (project, version)
-html_logo = '../img/rhodonite_500_77.png'
+html_logo = '../img/rhodonite_docs_logo.png'
 
 napoleon_use_ivar = True
 napoleon_use_rtype = False

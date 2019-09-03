@@ -1,14 +1,18 @@
+
+.. include:: intro.rst
+
 ========
 Contents
 ========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
-   readme
    installation
    usage
    reference/index
+   howto/index
+   tutorial/index
    contributing
    authors
    changelog

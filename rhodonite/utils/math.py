@@ -6,13 +6,17 @@ def jaccard_similarity(A, B):
     Calculates the jaccard similarity between a vector a and all of the rows in
     a matrix B.
 
-    Args:
-        a (:obj:`array-like`): A vector of length L.
-        B (:obj:`array-like`): A matrix or 2d array with L columns.
+    Parameters
+    ----------
+        A : :obj:`array-like` 
+            A vector of length L.
+        B : :obj:`array-like` 
+            A matrix or 2d array with L columns.
 
-    Returns:
-        j (:obj:`np.array`): A vector containing the row-wise jaccard
-            similarities between a and B.
+    Returns
+    -------
+        j : :obj:`np.array` 
+            A vector containing the row-wise jaccard similarities between a and B.
     """
     intersection = A.multiply(B).sum(axis=1)
     union = ((A + B) > 0).sum(axis=1)
@@ -20,12 +24,22 @@ def jaccard_similarity(A, B):
     return j
 
 def jaccard_similarity_set(a, b):
-    """jaccard_similarity"""
+    """jaccard_similarity_set
+    Calculates the Jaccard similarity between two sets.
+
+    Parameters
+    ----------
+    a : :obj:`set`
+    b : :obj:`set`
+
+    Returns
+    -------
+    :obj:`float`
+        The Jaccard similarity between `a` and `b`.
+    """
     a = set(a)
     b = set(b)
     intersection = len(a.intersection(b))
     union = len(a.union(b))
-#     intersection = len(list(set(a).intersection(b)))
-#     union = (len(a) + len(b)) - intersection
     return intersection / union
 

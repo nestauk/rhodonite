@@ -2,6 +2,8 @@
 Usage
 =====
 
-To use rhodonite in a project::
+Rhodonite is organised into modules that relate to a type of network.
 
-	import rhodonite
+Each module contains the functionality to create a type of network from data 
+and methods to enrich the nodes and edges with properties.
+

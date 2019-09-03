@@ -9,16 +9,22 @@ from collections import defaultdict
 def get_aggregate_vp(g, vp, vp_grouper, agg=None):
     """aggregate_property_map
     
-    Args:
-        g (:obj:`Graph`): A graph.
-        vp (str): String representing an internal property map
-            of graph, g.
-        vp_grouper (str): String representing name of an internal
-            property map that will be used to group by.
-        agg (:obj:`function`): Function to aggregate by. For
-            example, min, max, sum, numpy.mean, etc.
-    Returns:
-        (:obj:`iter` of float): Aggregated values from x. 
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` 
+            A graph.
+        vp : :obj:`str`
+            String representing an internal property map of graph, g.
+        vp_grouper : :obj:`str` 
+            String representing name of an internal property map that will be 
+            used to group by.
+        agg : :obj:`function` 
+            Function to aggregate by. For example, min, max, sum, numpy.mean, 
+            etc.
+    Returns
+    -------
+        :obj:`iter` of :obj:`float` 
+            Aggregated values from x. 
     """
     vp_vals = get_vp_values(g, vp)
     vp_agg = get_vp_values(g, vp_grouper)
@@ -43,12 +49,17 @@ def get_vp_values(g, vertex_prop_name):
     """get_vp_values
     Retrieves a vertex property from a graph, taking into account any filter.
     
-    Args:
-        g (:obj:`Graph`): A graph.
-        vertex_prop_name (str): The name of an internal vertex property.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` 
+            A graph.
+        vertex_prop_name :obj:`str`
+            The name of an internal vertex property.
         
-    Returns:
-        pm (:obj:`PropertyMapArray`): An array of the property map.
+    Returns
+    -------
+        pm : :obj:`PropertyMapArray` 
+            An array of the property map.
     """
     p_type = g.vp[vertex_prop_name].value_type()
     mask = g.get_vertex_filter()[0]
@@ -68,12 +79,16 @@ def reverse_index_communities(nested_list):
     """reverse_mapping
     Creates a mapping from elements to container index.
 
-    Args:
-        nested_list (:obj:`list`): Iterable of iterables.
+    Parameters
+    ----------
+        nested_list : :obj:`list` 
+            Iterable of iterables.
 
-    Returns:
-        d (:obj:`dict`): A dictionary mapping elements in the nested iterables
-            to the index of the iterable that they appeared within.
+    Returns
+    -------
+        d : :obj:`dict` 
+            A dictionary mapping elements in the nested iterables to the index 
+            of the iterable that they appeared within.
     """
     d = defaultdict(set)
     for i, l in enumerate(nested_list):
@@ -81,23 +96,18 @@ def reverse_index_communities(nested_list):
             d[element].add(i)
     return d
 
-def clear_graph(g):
-    """clear_graph
-    Removes all edges and vertices from the graph.
-    
-    Args:
-        g (:obj:`Graph`): A graph.
-    """
-
-    if len(list(g.edges())) > 0:
-        for e in g.edges():
-            g.remove_edge(e)
-    if len(list(g.vertices())) > 0:
-        for v in reversed(sorted(g.vertices())):
-            g.remove_vertex(v)
-
 def reverse_index(sequences):
     '''reverse_index
+    Maps elements in a set of sequences to the index of the sets that they 
+    appear in.
+
+    Parameters
+    ----------
+    sequences : :obj:`iter` of :obj:`iter`
+
+    Returns
+    -------
+    mapping : :obj:`dict`
     '''
     mapping = defaultdict(list)
     for i, seq in enumerate(sequences):
@@ -110,13 +120,17 @@ def edge_property_as_matrix(g, prop_name):
     Returns an edge property as a matrix. If the graph is undirected, a
     symmetric graph is returned.
     
-    Args:
-        g (:obj:`Graph`): A graph-tool type graph.
-        prop_name (str): The name of an edge property belonging to Graph, g.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph` 
+            A graph-tool type graph.
+        prop_name : :obj:`str`
+            The name of an edge property belonging to Graph, g.
 
-    Returns:
-     mat (:obj:`np.array`): The edge property in matrix form, with each
-     position (i, j) representing the property value between vertices i and j.
+    Returns
+    -------
+     mat : :obj:`np.array` 
+        The edge property in matrix form, with each
     """
     n_vertices = len([_ for _ in g.vertices()])
     mat = np.zeros((n_vertices, n_vertices))
@@ -140,14 +154,19 @@ def get_edge_vertex_ids(g, sort=True):
     Returns a list of tuples containing the source and target for each edge in
     the graph.
 
-    Args:
-        g (:obj:`Graph`): A graph with edges.
-        sorted (bool): Determines whether the edges will be returned sorted in
-            ascending order or not. Defaults to True.
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph`
+            A graph with edges.
+        sorted : :obj:`bool`: 
+            Determines whether the edges will be returned sorted in ascending 
+            order or not. Defaults to True.
 
-    Returns:
-        A list of source target pairs for every edge in the graph, with the
-        format, (source, target).
+    Returns
+    -------
+        :obj:`list` 
+            A list of source target pairs for every edge in the graph, with the 
+            format, (source, target).
     """
     if sort:
         return sorted([(int(e.source()), int(e.target())) for e in g.edges()])
@@ -171,10 +190,11 @@ def save_edgelist(g, filepath, weight=None):
     0 2 0.5
     1 2 0.25
     
-    Args:
-        g (:obj:`Graph`): 
-        filepath (str): 
-        weight (str) or (:obj:`PropertyMap`): 
+    Parameters
+    ----------
+        g : :obj:`graph_tool.Graph`
+        filepath : :obj:`str`: 
+        weight :obj:`str` or : :obj:`graph_tool.EdgePropertyMap` 
     """
     
     edgelist = get_edge_vertex_ids(g)
@@ -202,11 +222,15 @@ def flatten(list_of_iters):
     """flatten
     Flattens a list of iterables into a single flat list.
     
-    Args:
-    list_of_iters (:obj:`iter` of :obj:`iter`): A list of iterables.
+    Parameters
+    ----------
+    list_of_iters : :obj:`iter` of :obj:`iter` 
+        A list of iterables.
     
-    Returns:
-    (:obj:`generator`): Generates flattened list.
+    Returns
+    -------
+    :obj:`generator` 
+        Generates flattened list.
     """
     return itertools.chain(*list_of_iters)
 
@@ -227,8 +251,9 @@ def window(seq, n=3):
     Yields a sliding window (of width n) over data from the iterable
        s -> (s0,s1,...s[n-1]), (s1,s2,...,sn), ...
 
-    Args:
-        seq (:obj:`iter`): Sequence to move the window across.
+    Parameters
+    ----------
+        seq : :obj:`iter` Sequence to move the window across.
 
     Examples:
         >>> doc = ['a', 'b', 'c', 'd', 'e', 'f']
@@ -249,12 +274,15 @@ def label_isolated(g):
     Creates a vertex property map with True if a node has no neighbours,
     else False.
 
-    Args:
-        g (graph_tool.Graph): A graph.
+    Parameters
+    ----------
+        g (graph_tool.Graph):
+            A graph.
 
-    Returns:
-        isolated_vp (graph_tool.PropertyMap): Property map labelling isolated
-            vertices.
+    Returns
+    -------
+        isolated_vp (graph_tool.VertexPropertyMap):
+            Property map labelling isolated vertices.
     """
     isolated_vp = g.new_vertex_property('bool')
     for v in g.vertices():
@@ -267,11 +295,16 @@ def label_isolated(g):
 def clique_unions(clique_indices, limit):
     """clique_unions
     Create combinations of cliques up to limit.
-    Args:
-        clique_indices (:obj:`iter` of int): List of indices of cliques.
-        limit (int): The maximum number of cliques in each union.
-    Returns:
-        combos (:obj:`iter` of :obj:`iter` of int): Tuples of clique
+
+    Parameters
+    ----------
+        clique_indices : :obj:`iter` of :obj:`int` 
+            List of indices of cliques.
+        limit : :obj:`int` 
+            The maximum number of cliques in each union.
+    Returns
+    -------
+        combos : :obj:`iter` of :obj:`iter` of :obj:`int` Tuples of clique
             combinations.
     """
     combos = []
@@ -283,12 +316,17 @@ def clique_unions(clique_indices, limit):
 def recursive_combinations(iterable, limit):
     """recursive_combinations
     Create combinations of cliques up to limit.
-    Args:
-        clique_indices (:obj:`iter` of int): List of indices of cliques.
-        limit (int): The maximum number of cliques in each union.
-    Returns:
-        combos (:obj:`iter` of :obj:`iter` of int): Tuples of clique
-            combinations.
+
+    Parameters
+    ----------
+        clique_indices : :obj:`iter` of :obj:`int` 
+            List of indices of cliques.
+        limit : :obj:`int` 
+            The maximum number of cliques in each union.
+    Returns
+    -------
+        combos : :obj:`iter` of :obj:`iter` of :obj:`int` 
+            Tuples of clique combinations.
     """
     combos = []
     for l in range(1, limit + 1):
