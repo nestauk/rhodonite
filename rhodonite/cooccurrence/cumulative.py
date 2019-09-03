@@ -10,6 +10,7 @@ from rhodonite.cooccurrence.basic import cooccurrence_counts
 
 def cumulative_cooccurrence_graph(steps, sequences, directed=False):
     '''cumulative_cooccurrence_graph
+    Creates a cumulative cooccurrence graph.
 
     Parameters
     ----------

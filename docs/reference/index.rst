@@ -1,9 +1,14 @@
 Reference
 =========
 
+:Release: |release|
+
 .. toctree::
     :glob:
     :maxdepth: 2
     
     intro
-    rhodonite*
+    graph/index
+    utils
+    cli
+

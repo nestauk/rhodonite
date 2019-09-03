@@ -1,8 +1,5 @@
-rhodonite.cli package
-=====================
-
-Submodules
-----------
+Command Line Tools
+==================
 
 rhodonite.cli.build\_phylomemetic\_graph module
 -----------------------------------------------
@@ -13,10 +10,10 @@ rhodonite.cli.build\_phylomemetic\_graph module
    :show-inheritance:
 
 
-Module contents
----------------
-
-.. automodule:: rhodonite.cli
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. Module contents
+.. ---------------
+.. 
+.. .. automodule:: rhodonite.cli
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:

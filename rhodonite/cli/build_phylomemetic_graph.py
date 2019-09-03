@@ -2,7 +2,7 @@ import click
 import pickle
 import os
 
-from rhodonite.phylomemetic import PhylomemeticGraph
+from rhodonite.dynamic.phylomemetic import phylomemetic_graph
 
 @click.command()
 @click.option('--input', '-i', help='Input file of communities.')
@@ -53,8 +53,7 @@ def build(input, output, min_clique_size, parent_limit,
 
     save_dir = os.path.join(*input.split(os.sep)[:-1])
     if os.path.isdir(save_dir):
-        pg = PhylomemeticGraph()
-        pg.from_communities(
+        pg = phylomemetic_graph(
                 community_sets=list(communities.values()),
                 labels=list(communities.keys()),
                 min_clique_size=min_clique_size, 

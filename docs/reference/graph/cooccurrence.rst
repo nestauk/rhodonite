@@ -1,35 +1,33 @@
-rhodonite.cooccurrence package
-==============================
+===================
+Cooccurrence Graphs
+===================
 
-Submodules
-----------
-
-rhodonite.cooccurrence.basic module
------------------------------------
+Basic Cooccurrence Graphs
+-------------------------
 
 .. automodule:: rhodonite.cooccurrence.basic
    :members:
    :undoc-members:
-   :show-inheritance:
+..    :show-inheritance:
 
-rhodonite.cooccurrence.cumulative module
-----------------------------------------
+Cumulative Cooccurrence Graphs
+------------------------------
 
 .. automodule:: rhodonite.cooccurrence.cumulative
    :members:
    :undoc-members:
    :show-inheritance:
 
-rhodonite.cooccurrence.normalise module
----------------------------------------
+Cooccurrence Graph Normalisation
+--------------------------------
 
 .. automodule:: rhodonite.cooccurrence.normalise
    :members:
    :undoc-members:
    :show-inheritance:
+ 
 
-
-Module contents
+Module Contents
 ---------------
 
 .. automodule:: rhodonite.cooccurrence
