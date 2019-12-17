@@ -7,7 +7,7 @@ from gensim.corpora import Dictionary
 from graph_tool.all import Graph
 from itertools import chain, combinations
 
-from rhodonite.utils.misc import window, flatten, sequence_item_types
+from rhodonite.utils.misc import flatten
 from rhodonite.utils.graph import dict_to_vertex_prop
 
 def cooccurrence_graph(sequences, directed=False):

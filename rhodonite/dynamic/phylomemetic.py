@@ -12,10 +12,9 @@ from operator import itemgetter
 from sklearn.preprocessing import MultiLabelBinarizer
 from multiprocessing import Pool, cpu_count
 
-from rhodonite.utils.misc import (window, flatten, clear_graph, 
-        get_aggregate_vp, reverse_index_communities, clique_unions, 
-        reverse_index, recursive_combinations)
-from rhodonite.utils.math import jaccard_similarity, jaccard_similarity_set
+from rhodonite.utils.misc import (flatten,clique_unions, reverse_index, 
+        recursive_combinations)
+from rhodonite.utils.math import jaccard_similarity_set
 from rhodonite.utils.tabular import vertices_to_dataframe
 
 import time
@@ -651,7 +650,7 @@ def phylomemetic_graph(steps, communities, min_size=3, max_size=50,
             eprops=[group_link_strength, single_link_strength]
             )
 
-    element_vertex_map = reverse_index_communities(flatten(communities_filt))
+    element_vertex_map = reverse_index(flatten(communities_filt))
 
     vertex_steps = g.new_vertex_property('int')
     for (start, end), step in zip(communities_offsets, steps):
