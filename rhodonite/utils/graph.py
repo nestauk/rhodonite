@@ -1,7 +1,8 @@
 from operator import itemgetter
+from graph_tool import GraphView
 
 def subgraph_eprop_values(g, vertices, eprop):
-    '''get_subgraph_eprop
+    '''subgraph_eprop_values
     Retrieves the edge property values of all edges in a subgraph.
 
     Parameters
@@ -99,53 +100,53 @@ def dict_to_edge_prop(g, prop_dict, val_type, edge_index_dict=None):
     eprop.a[indices] = list(prop_dict.values())
     return eprop
 
-def add_dict_edge_list(g, prop_dict, prop_name, eval_type, **eprop_kwargs):
-    '''add_dict_edge_list
-    Converts a dictionary to graph edges with an edge property map.
+# def add_dict_edge_list(g, prop_dict, prop_name, eval_type, **eprop_kwargs):
+#     '''add_dict_edge_list
+#     Converts a dictionary to graph edges with an edge property map.
+# 
+#     Parameters
+#     ----------
+#         g : :obj:`graph_tool.Graph` 
+#             A graph.
+#         prop_dict : :obj:`dict` 
+#             A dictionary where keys are tuples of source target vertices or 
+#             indices, and values are the value of a property or weight assigned 
+#             to the edge. vertices and values are the values to be inserted into 
+#             the property map.
+#         val_type : :obj:`str`
+#             The type of the property. See `graph_tool.PropertyMap`.
+#         eprop_kwargs: 
+#             See `graph_tool.PropertyMap`.
+#     '''
+#     eprop = g.new_edge_property(eval_type)
+#     g.ep[prop_name] = eprop
+#     edge_list = [(e[0], e[1], v) for e, v in prop_dict.items()]
+#     g.add_edge_list(edge_list, eprops=[g.ep[prop_name]])
 
-    Parameters
-    ----------
-        g : :obj:`graph_tool.Graph` 
-            A graph.
-        prop_dict : :obj:`dict` 
-            A dictionary where keys are tuples of source target vertices or 
-            indices, and values are the value of a property or weight assigned 
-            to the edge. vertices and values are the values to be inserted into 
-            the property map.
-        val_type : :obj:`str`
-            The type of the property. See `graph_tool.PropertyMap`.
-        eprop_kwargs: 
-            See `graph_tool.PropertyMap`.
-    '''
-    eprop = g.new_edge_property(eval_type)
-    g.ep[prop_name] = eprop
-    edge_list = [(e[0], e[1], v) for e, v in prop_dict.items()]
-    g.add_edge_list(edge_list, eprops=[g.ep[prop_name]])
-
-def internalize_prop_dict(g, prop_dict, prop_tag='{}'):
-    '''internalize_props_from_dict
-    Internalises property maps contained in a dictionary and that correspond to
-    graph, g, to that graph itself.
-
-    Parameters
-    ----------
-        g : :obj:`graph_tool.Graph` 
-            A graph.
-        prop_dict : :obj:`dict` of :obj:`graph_tool.PropertyMap` 
-            A dictionary of `graph_tool.PropertyMap` for a graph, g, its vertices 
-            or edges.
-        prop_tag : :obj:`str`, optional
-            A common name to apply to the keys of internalized properties. 
-            Curly braces should be included to indicate where the unique key for 
-            each property map should be included. e.g. `my_graph_prop_{}`
-            Defaults to key for each property map in prop_dict.
-    '''
-    for k, prop in prop_dict.items():
-        kt = prop.key_type()
-        if kt == 'v':
-            g.vp[prop_tag.format(k)] = prop
-        elif kt == 'e':
-            g.ep[prop_tag.format(k)] = prop
-        elif kt == 'g':
-            g.gp[prop_tag.format(k)] = prop
+# def internalize_prop_dict(g, prop_dict, prop_tag='{}'):
+#     '''internalize_props_from_dict
+#     Internalises property maps contained in a dictionary and that correspond to
+#     graph, g, to that graph itself.
+# 
+#     Parameters
+#     ----------
+#         g : :obj:`graph_tool.Graph` 
+#             A graph.
+#         prop_dict : :obj:`dict` of :obj:`graph_tool.PropertyMap` 
+#             A dictionary of `graph_tool.PropertyMap` for a graph, g, its vertices 
+#             or edges.
+#         prop_tag : :obj:`str`, optional
+#             A common name to apply to the keys of internalized properties. 
+#             Curly braces should be included to indicate where the unique key for 
+#             each property map should be included. e.g. `my_graph_prop_{}`
+#             Defaults to key for each property map in prop_dict.
+#     '''
+#     for k, prop in prop_dict.items():
+#         kt = prop.key_type()
+#         if kt == 'v':
+#             g.vp[prop_tag.format(k)] = prop
+#         elif kt == 'e':
+#             g.ep[prop_tag.format(k)] = prop
+#         elif kt == 'g':
+#             g.gp[prop_tag.format(k)] = prop
 
