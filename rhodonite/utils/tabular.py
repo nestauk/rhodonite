@@ -63,7 +63,7 @@ def edges_to_dataframe(g, keys=None, drop_keys=[], sort=None, vectors=False):
             a column for the source vertices and another for the target 
             vertices.
     """
-    edge_df = pd.DataFrame(list(g.edges()), columns=['s', 't'], dtype='int')
+#     edge_df = pd.DataFrame(list(g.edges()), columns=['s', 't'], dtype='int')
     edge_df = pd.DataFrame(g.get_edges(), columns=['s', 't', 'e_index'], dtype='int')
     indices = edge_df['e_index'].values
     if keys is None:
@@ -79,7 +79,7 @@ def edges_to_dataframe(g, keys=None, drop_keys=[], sort=None, vectors=False):
                     edge_df[k] = ep.get_array()[indices]
                     edge_df[k] = edge_df[k].astype(float)
             elif ('vector' in vt) & ('string' not in vt) & (vectors == True):
-                edge_df[k] = [[i for i in vp[v]] for v in g.vertices()]
+                edge_df[k] = [[i for i in ep[e]] for e in g.edges()]
     if sort:
         edge_df.sort_values(sort, inplace=True)
     return edge_df
