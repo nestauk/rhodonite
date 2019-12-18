@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.sparse import csr_matrix, csc_matrix
+# from scipy.sparse import csr_matrix, csc_matrix
 
 # def jaccard_similarity(A, B):
 #     """jaccard_similarity
