@@ -54,7 +54,7 @@ docs/_build
 
 .DS_Store
 *~
-.*.sw[po]
+.*.sw[pon]
 .build
 .ve
 .env
@@ -64,7 +64,3 @@ docs/_build
 .appveyor.token
 *.bak
 
-#vim
-*.swo
-*.swp
-*.swn
